@@ -17,23 +17,6 @@ async function submitForm(e){
     console.log("This is what we have");
     console.log({data});
 
-    var error = "";
-    var msg = "";
-    var username = "";
-    
-    
-    let entries = Object.entries(data);
-    entries.map(([k,v] = entry) => {
-      switch(k){
-        case "error":
-          error = v;
-        case "msg":
-          error = v;
-        case "user":
-          username = v;
-      }
-    });
-
     if (isError(data)) {
       console.log("there should not be an error")
       window.location.replace(`/`)
