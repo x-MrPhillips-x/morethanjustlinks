@@ -16,3 +16,9 @@ Start service locally
 docker compose up
 ```
 
+Then navigate to http://localhost
+
+## App instructions
+
+This app is a WIP. However, some of the functionality is ready.
+
