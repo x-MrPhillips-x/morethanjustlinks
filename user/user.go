@@ -1,7 +1,7 @@
 package user
 
 const (
-	USERKEY = "user"
+	UUIDKEY = "uuid"
 )
 
 type User struct {
@@ -9,10 +9,11 @@ type User struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
+	Psword   string `json:"psword`
 	Verified bool   `json:"verified"`
 }
 
 type Auth struct {
-	Username string `json:"username"`
-	Psword   string `json:"psword"`
+	Name   string `json:"name"`
+	Psword string `json:"psword"`
 }

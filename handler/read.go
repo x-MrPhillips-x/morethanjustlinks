@@ -7,11 +7,13 @@ import (
 	"example.com/morethanjustlinks/user"
 	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 const (
 	SELECT_ALL_USERS = "SELECT uuid,name,email,phone,verified FROM users;"
+	LOGIN_USER_QUERY = "SELECT uuid,name,verified,psword FROM users WHERE name= ?;"
 )
 
 type GetAllUsersResponse struct {
@@ -59,7 +61,7 @@ func (h *HandlerService) GetAllUsers(ctx *gin.Context) {
 
 }
 
-func (h HandlerService) Login(ctx *gin.Context) {
+func (h *HandlerService) Login(ctx *gin.Context) {
 
 	defer func() {
 		h.sugaredLogger.Desugar().Sync() // flushes buffer, if any
@@ -70,22 +72,45 @@ func (h HandlerService) Login(ctx *gin.Context) {
 
 	// Bind the input data
 	var userAuth user.Auth
-	if err := ctx.BindJSON((&userAuth)); err != nil {
+	if err := ctx.BindJSON(&userAuth); err != nil {
 		h.sugaredLogger.Errorw("Error binding fronted json", zap.Error(err))
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Something went wrong with your login request..."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong with your login request..."})
 		return
 	}
 
-	msg := fmt.Sprintf("given username %v and pass %v", userAuth.Username, userAuth.Psword)
+	if userAuth.Name == "" || userAuth.Psword == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "please enter required username and password"})
+		return
+	}
+
+	msg := fmt.Sprintf("given username %v and pass %v", userAuth.Name, userAuth.Psword)
+
+	var foundUser user.User
+	if err := h.maria_repo.QueryRow(
+		LOGIN_USER_QUERY, userAuth.Name).
+		Scan(&foundUser.UUID, &foundUser.Name, &foundUser.Verified, &foundUser.Psword); err != nil {
+
+		h.sugaredLogger.Errorw("Error logging in", zap.Any("error", err), zap.String("user", userAuth.Name))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong with your login request...02"})
+		return
+	}
+
+	// Check password hash + salt
+	match := CheckPasswordHash(userAuth.Psword, foundUser.Psword)
+
+	if !match {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "unauthorized user"})
+		return
+	}
 
 	// set the session data
-	session.Set(user.USERKEY, userAuth.Username)
+	session.Set(user.UUIDKEY, uuid.New().String())
 	if err := session.Save(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set session"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to set session"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": msg})
+	ctx.JSON(http.StatusOK, gin.H{"msg": msg, "user": foundUser.Name, "verified": foundUser.Verified})
 }
 
 func adaptRowsToGetAllUsersResponse(rows ReadInterface) ([]GetAllUsersResponse, error) {
@@ -103,4 +128,23 @@ func adaptRowsToGetAllUsersResponse(rows ReadInterface) ([]GetAllUsersResponse, 
 	}
 
 	return resp, nil
+}
+
+func (h *HandlerService) Authentication(ctx *gin.Context) {
+	session := sessions.Default(ctx)
+	sessionUUID := session.Get("uuid")
+
+	if sessionUUID == nil {
+		ctx.File("index.html")
+		return
+	}
+}
+
+func (h *HandlerService) Logout(ctx *gin.Context) {
+	session := sessions.Default(ctx)
+	session.Clear()
+	session.Save()
+
+	ctx.JSON(http.StatusOK, gin.H{"msg": "successful logout"})
+
 }

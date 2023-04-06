@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/mail"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -40,8 +40,7 @@ func (h *HandlerService) SetupService(ctx *gin.Context) {
 	}()
 
 	h.DropUsersTable(ctx)
-	fmt.Println("There should not be any errors")
-	fmt.Println(ctx.Errors)
+
 	if len(ctx.Errors) == 0 {
 		h.CreateUserTable(ctx)
 	}
@@ -75,10 +74,17 @@ func (h *HandlerService) InsertUser(ctx *gin.Context) {
 		return
 	}
 
+	// encrypt password
+	hashPswd, err := HashPassword(req.Psword)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong with your login request...01"})
+		return
+	}
+
 	// insert into db
 	result, err := h.maria_repo.Exec(
 		"INSERT INTO users (uuid,name,email,phone,psword,verified) VALUES (?,?,?,?,?,?)",
-		uuid.New().String(), req.Name, req.Email, req.Phone, req.Psword, req.Verified,
+		uuid.New().String(), req.Name, req.Email, req.Phone, hashPswd, req.Verified,
 	)
 
 	if err != nil {
@@ -140,4 +146,14 @@ func isValidEmail(email string) bool {
 func isValidPhoneNumber(phone string) bool {
 	match, _ := regexp.MatchString("^[0-9]{10}$", phone)
 	return match
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

@@ -26,7 +26,7 @@ services:
         condition: service_healthy
   maria-db:
     image: mariadb:10-focal
-    container_name: maria-db
+    container_name: morethanjustlinks-maria-db
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
     healthcheck:

@@ -85,6 +85,25 @@ func (_m *DbInterface) Query(query string, args ...interface{}) (*sql.Rows, erro
 	return r0, r1
 }
 
+// QueryRow provides a mock function with given fields: query, args
+func (_m *DbInterface) QueryRow(query string, args ...interface{}) *sql.Row {
+	var _ca []interface{}
+	_ca = append(_ca, query)
+	_ca = append(_ca, args...)
+	ret := _m.Called(_ca...)
+
+	var r0 *sql.Row
+	if rf, ok := ret.Get(0).(func(string, ...interface{}) *sql.Row); ok {
+		r0 = rf(query, args...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*sql.Row)
+		}
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewDbInterface interface {
 	mock.TestingT
 	Cleanup(func())

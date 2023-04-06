@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
+
+  </head>
+
+  <body>
+    <div>
+      <img src="./assets/day_veriblack_logo.svg">
+    </div>
+
+    <div>
+      <form onsubmit="submitForm(event)" method="post" action="">
+      <div><label htmlFor='linkTitle'>Link Title:</label>
+      <input type="hidden" name="uuid" value={uuid}></input> 
+      <input 
+        name="linkTitle" 
+        defaultValue=""
+        required/></div>
+      <div><label htmlFor='link'>Link:</label> 
+      <input 
+        name="link" 
+        defaultValue=""
+        pattern=''
+        title=''
+        required/></div>
+        <button>Create Link</button>
+      </form>
+    </div>
+    <p>{{ .name }} , Here are your links</p>
+
+    <p>Here is the count from cookie store {{ .count }}</p>
+
+    <footer>Copyright &copy; 2023 VeriBlack LLC. All Rights Reserved</footer>
+
+    <script src="./js/index.js"></script>
+
+  </body>
+</html>

@@ -10,6 +10,7 @@ type DbInterface interface {
 	Ping() error
 	Exec(query string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
 }
 
 func Connect() (*sql.DB, error) {
@@ -26,4 +27,8 @@ func Exec(db DbInterface, query string, args ...any) (sql.Result, error) {
 
 func Query(db DbInterface, query string, args ...any) (*sql.Rows, error) {
 	return db.Query(query, args...)
+}
+
+func QueryRow(db DbInterface, query string, args ...any) *sql.Row {
+	return db.QueryRow(query, args...)
 }
