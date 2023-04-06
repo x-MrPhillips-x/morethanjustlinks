@@ -20,5 +20,18 @@ Then navigate to http://localhost
 
 ## App instructions
 
-This app is a WIP. However, some of the functionality is ready.
+To demostrate the app restAPI, send the curl below to setup db tables to support new accouts and links
+
+
+```
+curl http://localhost/setup \
+    --include \
+    --header "Content-Type: application/json" \
+    --request "GET" \
+```
+
+output
+```
+{"msg":"created user tables succesfully"}%
+```
 
