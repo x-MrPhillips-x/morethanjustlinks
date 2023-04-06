@@ -18,8 +18,6 @@ Start service locally
 docker compose up
 ```
 
-Then navigate to http://localhost
-
 ## App instructions
 
 To demostrate the app restAPI, send the curl below to setup db tables to support new accouts and links
@@ -36,4 +34,6 @@ output
 ```
 {"msg":"created user tables succesfully"}%
 ```
+
+Then navigate to http://localhost and click Create new account.
 
