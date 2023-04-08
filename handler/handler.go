@@ -58,6 +58,7 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 	})
 	router.POST("newAccount", h.InsertUser)
 	router.GET("/getAllUsers", h.GetAllUsers)
+	router.GET("/setup", h.SetupService)
 
 	api := router.Group("/api")
 	api.Use(h.Authentication)
@@ -113,8 +114,6 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 				"name":  username,
 			})
 		})
-		api.GET("/setup", h.SetupService)
-		api.GET("/getAllUsers", h.GetAllUsers)
 
 		api.POST("/delete", h.DeleteUser)
 		api.POST("/update", h.UpdateUser)
