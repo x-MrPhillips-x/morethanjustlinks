@@ -16,7 +16,15 @@ func (h *HandlerService) DropUsersTable(ctx *gin.Context) {
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error dropping users"})
 		ctx.Error(err)
-		return
+	}
+	ctx.Next()
+}
+
+func (h *HandlerService) DropLinksTable(ctx *gin.Context) {
+	_, err := h.maria_repo.Exec("DROP TABLE IF EXISTS links;")
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error dropping links"})
+		ctx.Error(err)
 	}
 	ctx.Next()
 }

@@ -14,14 +14,14 @@ type HandlerTestSuite struct {
 	HandlerService *HandlerService
 	db_mock        *mocks.DbInterface
 	router         *gin.Engine
-	rows_mock      *mocks.DbInterface
+	rows_mock      *mocks.RowsInterface
 }
 
 func (h *HandlerTestSuite) SetupTest() {
 	h.db_mock = &mocks.DbInterface{}
 	h.db_mock.On("Ping").Return(nil)
 
-	h.rows_mock = &mocks.DbInterface{}
+	h.rows_mock = &mocks.RowsInterface{}
 
 	mock_handler, _ := NewHandlerService(h.db_mock, zap.NewNop().Sugar(), 3)
 
