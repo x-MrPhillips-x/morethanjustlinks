@@ -7,7 +7,6 @@ import (
 
 	maria_db "example.com/morethanjustlinks/db"
 	"github.com/gin-gonic/contrib/sessions"
-	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -51,11 +50,6 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		sessions.Sessions("mysession", cookieStore),
 	)
 
-	// Serve frontend static files
-
-	router.Use(static.Serve("/", static.LocalFile("./views", true)))
-	router.LoadHTMLGlob("./views/templates/*")
-
 	router.POST("login", h.Login)
 	router.GET("logout", h.Logout)
 	router.GET("newAccountForm", func(ctx *gin.Context) {
@@ -63,6 +57,7 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		ctx.HTML(http.StatusOK, "create_account.tmpl", gin.H{})
 	})
 	router.POST("newAccount", h.InsertUser)
+	router.GET("/getAllUsers", h.GetAllUsers)
 
 	api := router.Group("/api")
 	api.Use(h.Authentication)

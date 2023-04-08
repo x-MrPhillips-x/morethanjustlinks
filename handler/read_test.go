@@ -13,35 +13,97 @@ import (
 )
 
 func (h *HandlerTestSuite) TestGetAllUsers() {
+	sqlRows := &sql.Rows{}
 	tests := []struct {
 		name         string
 		reqParams    []byte
 		expectMsgKey string
 		expectMsg    string
 		expectCode   int
-		queryErr     error
 		adaptErr     error
+		mocks        func()
 	}{
 		{
 			"Error querying db for all users",
 			[]byte(`{}`),
 			"error",
-			"error fetching all users",
+			"something went wrong...",
 			500,
-			errors.New("some error"),
 			nil,
+			func() {
+				h.db_mock.On(
+					"Query",
+					SELECT_ALL_USERS).Return(sqlRows, errors.New("some error"))
+			},
 		},
+		{
+			"Error rows next returns false",
+			[]byte(`{}`),
+			"error",
+			"something went wrong...",
+			500,
+			nil,
+			func() {
+				h.db_mock.On(
+					"Query",
+					SELECT_ALL_USERS).Return(sqlRows, nil)
+				h.rows_mock.On("Next").Return(false)
+			},
+		},
+		{
+			"Error rows scan",
+			[]byte(`{}`),
+			"error",
+			"something went wrong...",
+			500,
+			nil,
+			func() {
+				h.db_mock.On(
+					"Query",
+					SELECT_ALL_USERS).Return(sqlRows, nil)
+				h.rows_mock.On("Next").Return(true)
+				h.rows_mock.On("Scan").Return(errors.New("some error"))
+			},
+		},
+		// {
+		// 	"Success get all users",
+		// 	[]byte(`{}`),
+		// 	"error",
+		// 	"something went wrong...",
+		// 	200,
+		// 	nil,
+		// 	func() {
+		// 		h.db_mock.On(
+		// 			"Query",
+		// 			SELECT_ALL_USERS).Return(
+		// 			sqlmock.NewRows([]string{"uuid", "name", "email", "phone", "verified"}).
+		// 				AddRow(
+		// 					"08eb0d36-5669-4e6c-b4a3-6097bddd75bc",
+		// 					"ham",
+		// 					"burger@mail.com",
+		// 					"8888888888",
+		// 					true,
+		// 				), nil,
+		// 		)
+		// 		h.rows_mock.On("Next").Return(true)
+		// 		h.rows_mock.On(
+		// 			"Scan",
+		// 			mock.Anything,
+		// 			mock.Anything,
+		// 			mock.Anything,
+		// 			mock.Anything,
+		// 			mock.Anything,
+		// 		).Return(nil)
+		// 	},
+		// },
 	}
 
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
-			var sqlRows *sql.Rows
-			h.db_mock.On(
-				"Query",
-				SELECT_ALL_USERS).Return(sqlRows, tt.queryErr).Once()
-
 			w := httptest.NewRecorder()
+
+			tt.mocks()
 
 			req, _ := http.NewRequest("GET", "/getAllUsers", bytes.NewBuffer(tt.reqParams))
 

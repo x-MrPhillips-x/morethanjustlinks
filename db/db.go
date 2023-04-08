@@ -25,7 +25,7 @@ func Exec(db DbInterface, query string, args ...any) (sql.Result, error) {
 	return db.Exec(query, args...)
 }
 
-func Query(db DbInterface, query string, args ...any) (*sql.Rows, error) {
+func Query(db DbInterface, query string, args ...any) (RowsInterface, error) {
 	return db.Query(query, args...)
 }
 
