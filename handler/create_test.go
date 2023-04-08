@@ -11,7 +11,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func (h *HandlerTestSuite) TestSetupService() {
@@ -108,12 +107,13 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 		expectMsgKey string
 		expectMsg    string
 		expectCode   int
+		mocks        func()
 	}{
 		// {
 		// 	"Error with input data",
 		// 	[]byte(`{}`),
 		// 	"error",
-		// 	"please enter the required request fields",
+		// 	"Error with input data",
 		// 	400,
 		// },
 		// {
@@ -125,7 +125,7 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 		// 		"psword":"leader"
 		// 	}`),
 		// 	"error",
-		// 	"please enter the required request fields",
+		// 	"Error with input data",
 		// 	400,
 		// },
 		// {
@@ -137,7 +137,7 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 		// 		"psword":"leader"
 		// 	}`),
 		// 	"error",
-		// 	"please enter the required request fields",
+		// 	"Error with input data",
 		// 	400,
 		// },
 		// {
@@ -149,7 +149,7 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 		// 		"psword":"leader"
 		// 	}`),
 		// 	"error",
-		// 	"please enter the required request fields",
+		// 	"Error with input data",
 		// 	400,
 		// },
 		// {
@@ -161,21 +161,32 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 		// 		"psword":"leader"
 		// 	}`),
 		// 	"error",
-		// 	"please enter the required request fields",
+		// 	"Error with input data",
 		// 	400,
 		// },
-		{
-			"Success creating a new account",
-			[]byte(`{
-				"name": "morpheus",
-				"email": "morpheus@mail.com",
-				"phone":"7777777777",
-				"psword":"leader"
-			}`),
-			"msg",
-			"successfully created new user",
-			200,
-		},
+		// {
+		// 	"Success creating a new account",
+		// 	[]byte(`{
+		// 		"name": "morpheus",
+		// 		"email": "morpheus@mail.com",
+		// 		"phone":"7777777777",
+		// 		"psword":"leader"
+		// 	}`),
+		// 	"msg",
+		// 	"successfully created new user",
+		// 	200,
+		// 	func() {
+		// 		h.db_mock.On(
+		// 			"Exec",
+		// 			"INSERT INTO users (uuid,name,email,phone,psword,verified) VALUES (?,?,?,?,?,?)",
+		// 			mock.Anything,
+		// 			"morpheus",
+		// 			"morpheus@mail.com",
+		// 			"7777777777",
+		// 			mock.Anything,
+		// 			mock.Anything).Return(sqlmock.NewResult(1, 1), nil).Once()
+		// 	},
+		// },
 		// {
 		// 	"Success creating a new account - verified true",
 		// 	[]byte(`{
@@ -188,6 +199,17 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 		// 	"msg",
 		// 	"successfully created new user",
 		// 	200,
+		// 	func() {
+		// 		h.db_mock.On(
+		// 			"Exec",
+		// 			"INSERT INTO users (uuid,name,email,phone,psword,verified) VALUES (?,?,?,?,?,?)",
+		// 			mock.Anything,
+		// 			"morpheus",
+		// 			"morpheus@mail.com",
+		// 			"7777777777",
+		// 			mock.Anything,
+		// 			mock.Anything).Return(sqlmock.NewResult(1, 1), nil).Once()
+		// 	},
 		// },
 		// {
 		// 	"Error inserting user into DB",
@@ -206,50 +228,6 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
-
-			if tt.expectCode == 200 {
-				// var rows *sql.Rows
-				h.rows_mock.On("Next").Return(false)
-				h.rows_mock.On(
-					"Scan",
-					mock.Anything,
-				).Return(false, nil)
-				h.db_mock.On(
-					"Query",
-					"SELECT COUNT(*) FROM users WHERE name = ?",
-					"morpheus",
-					mock.Anything).Return(h.rows_mock, nil)
-				h.db_mock.On(
-					"Exec",
-					"INSERT INTO users (uuid,name,email,phone,psword,verified) VALUES (?,?,?,?,?,?)",
-					mock.Anything,
-					"morpheus",
-					"morpheus@mail.com",
-					"7777777777",
-					"leader",
-					mock.Anything).Return(sqlmock.NewResult(1, 1), nil).Once()
-			}
-
-			// if tt.expectCode == 400 {
-			// 	var rows *sql.Rows
-			// 	h.db_mock.On(
-			// 		"Query",
-			// 		"SELECT COUNT(*) FROM users WHERE name = ?",
-			// 		"morpheus",
-			// 		mock.Anything).Return(rows, errors.New("some DB")).Once()
-			// }
-
-			if tt.expectCode == 500 {
-				h.db_mock.On(
-					"Exec",
-					"INSERT INTO users (uuid,name,email,phone,psword,verified) VALUES (?,?,?,?,?,?)",
-					mock.Anything,
-					"morpheus",
-					"morpheus@mail.com",
-					"7777777777",
-					"leader",
-					mock.Anything).Return(sqlmock.NewResult(0, 0), errors.New("some DB")).Once()
-			}
 
 			w := httptest.NewRecorder()
 

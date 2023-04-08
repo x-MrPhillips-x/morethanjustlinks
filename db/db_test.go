@@ -8,7 +8,23 @@ import (
 	"example.com/morethanjustlinks/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
+
+type DBInterfaceImplementationsSuite struct {
+	suite.Suite
+	db      *mocks.DbInterface
+	db_rows *mocks.RowsInterface
+}
+
+func (suite *DBInterfaceImplementationsSuite) SetupTest() {
+	suite.db = &mocks.DbInterface{}
+	suite.db_rows = &mocks.RowsInterface{}
+}
+
+func TestDBInterfaceImplementationsSuite(t *testing.T) {
+	suite.Run(t, new(DBInterfaceImplementationsSuite))
+}
 
 func TestConnect(t *testing.T) {
 	db, err := Connect()

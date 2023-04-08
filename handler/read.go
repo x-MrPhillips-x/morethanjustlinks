@@ -32,24 +32,30 @@ func (h *HandlerService) GetAllUsers(ctx *gin.Context) {
 	rows, err := h.maria_repo.Query(SELECT_ALL_USERS)
 	if err != nil {
 		h.sugaredLogger.Errorw("Error fetching all users", zap.Any("error", err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching all users"})
+		ctx.Error(err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
 
 	defer func() {
 		h.sugaredLogger.Desugar().Sync()
-		rows.Close()
 	}()
 
-	resp, err := adaptRowsToGetAllUsersResponse(rows)
-	if err != nil {
-		h.sugaredLogger.Errorw("Error adapting all users to response", zap.Any("error", err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error adapting all user to response"})
-		return
+	fmt.Println("these are the rows:", rows)
+	fmt.Println("these are the rows:", rows)
+
+	var resp []GetAllUsersResponse
+	for rows.Next() {
+		var r GetAllUsersResponse
+		if err := rows.Scan(&r.UUID, &r.Name, &r.Email, &r.Phone, &r.Verified); err != nil {
+			h.sugaredLogger.Errorw("error adapting all users to response", zap.Any("error", err))
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
+			break
+		}
+		resp = append(resp, r)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"msg":  "Successfully fetched all users",
 		"resp": resp,
 	})
 
@@ -172,9 +178,9 @@ func adaptRowsToGetAllUsersResponse(rows db.RowsInterface) ([]GetAllUsersRespons
 		resp = append(resp, r)
 	}
 
-	if err := rows.Err(); err != nil {
-		return resp, err
-	}
+	// if err := rows.Err(); err != nil {
+	// 	return resp, err
+	// }
 
 	return resp, nil
 }

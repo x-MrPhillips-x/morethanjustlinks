@@ -53,6 +53,8 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 	router.GET("logout", h.Logout)
 	router.POST("newAccount", h.NewAccount)
 	router.GET("/:name", h.GetProfile)
+	router.GET("/getAllUsers", h.GetAllUsers)
+	router.GET("/setup", h.SetupService)
 
 	// todo profile router use authentication
 	// does pfp need to use sessions also?
@@ -63,50 +65,8 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		})
 	})
 
-	router.GET("/setup", h.SetupService)
-	router.GET("/getAllUsers", h.GetAllUsers)
 	router.POST("/delete", h.DeleteUser)
 	router.POST("/update", h.UpdateUser)
-
-	// api := router.Group("/api")
-	// api.Use(h.Authentication)
-	// {
-	// 	api.GET("/", func(ctx *gin.Context) {
-	// 		session := sessions.Default(ctx)
-	// 		var count int
-	// 		v := session.Get("count")
-	// 		if v == nil {
-	// 			count = 0
-	// 		} else {
-	// 			count = v.(int)
-	// 			count += 1
-	// 		}
-	// 		session.Set("count", count)
-	// 		session.Save()
-	// 		ctx.JSON(http.StatusOK, gin.H{
-	// 			"message": count,
-	// 		})
-	// 	})
-	// 	api.GET("/:name/profile", func(ctx *gin.Context) {
-	// 		session := sessions.Default(ctx)
-	// 		var count int
-	// 		v := session.Get("count")
-	// 		if v == nil {
-	// 			count = 0
-	// 		} else {
-	// 			count = v.(int)
-	// 			count += 1
-	// 		}
-	// 		session.Set("count", count)
-	// 		session.Save()
-	// 		ctx.HTML(http.StatusOK, "profile.tmpl", gin.H{
-	// 			"count": count,
-	// 		})
-	// 	})
-	// 	api.GET("/:name/profile/edit", func(ctx *gin.Context) {
-	// 		session := sessions.Default(ctx)
-	// 		var count int
-	// 		v := session.Get("count")
 
 	// 		username := ctx.Param("name")
 	// 		if v == nil {

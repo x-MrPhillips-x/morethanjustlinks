@@ -5,7 +5,8 @@ ngnix + go + gin + frontend to display your links dynamically
 
 ## quick start guide
 
-Guide supposes you have installed docker. If not please see https://docs.docker.com/engine/install/
+Guide supposes you: 
+- have installed docker. If not please see https://docs.docker.com/engine/install/
 
 Clone repo
 ```
