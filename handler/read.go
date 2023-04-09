@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"example.com/morethanjustlinks/db"
@@ -76,9 +75,6 @@ func (h *HandlerService) GetProfile(ctx *gin.Context) {
 	if name == "" || uuid == "" {
 		h.sugaredLogger.Error("missing required profile params")
 	}
-
-	fmt.Println("This is the name:", name)
-	fmt.Println("This is the session uuid:", uuid)
 
 	queryStr := "select * from links where username = ?;"
 	rows, err := h.maria_repo.Query(queryStr, name)

@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,7 +21,6 @@ func (h *HandlerTestSuite) TestHandlerService_DeleteLink() {
 		expectMsg    string
 		mocks        func()
 	}{
-		// TODO: Add test cases.
 		{
 			"missing required uuid",
 			DeleteLinkRequest{
@@ -59,8 +57,6 @@ func (h *HandlerTestSuite) TestHandlerService_DeleteLink() {
 			body, _ := json.Marshal(tt.reqParams)
 			req, _ := http.NewRequest("POST", "/deleteLink", bytes.NewBuffer(body))
 
-			fmt.Println("This is the req setup for test:", req)
-
 			h.router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectCode, w.Code)
@@ -86,7 +82,6 @@ func (h *HandlerTestSuite) TestHandlerService_DeleteUser() {
 		expectMsg    string
 		mocks        func()
 	}{
-		// TODO: Add test cases.
 		{
 			"missing required uuid",
 			DeleteUserRequest{

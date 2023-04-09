@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -236,8 +235,6 @@ func (h *HandlerTestSuite) TestNewAccountRoute() {
 			h.router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectCode, w.Code)
-
-			fmt.Println("What is the response?", w.Body.String())
 
 			var actualResponse map[string]string
 			json.Unmarshal(w.Body.Bytes(), &actualResponse)

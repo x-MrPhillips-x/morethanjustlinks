@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -74,16 +73,12 @@ func (h *HandlerService) DeleteLink(ctx *gin.Context) {
 	var req DeleteLinkRequest
 	ctx.Header("Content-Type", "application/json")
 
-	fmt.Println("This is the ctx:", ctx)
-
 	if err := ctx.BindJSON((&req)); err != nil {
-		fmt.Println("We should not be here:", req)
 		h.sugaredLogger.Errorw("Error not a valid delete link request", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error not a valid delete link request"})
 		return
 	}
 
-	fmt.Println("This is the uuid from the request:", req)
 	if req.UUID == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "error missing required uuid"})
 		return
