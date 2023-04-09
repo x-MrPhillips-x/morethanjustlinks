@@ -31,11 +31,6 @@ func NewHandlerService(maria_repo maria_db.DbInterface, sugaredLogger *zap.Sugar
 	}
 
 	return &HandlerService{}, err
-
-	// return &HandlerService{
-	// 	maria_repo:    maria_repo,
-	// 	sugaredLogger: sugaredLogger,
-	// }, nil
 }
 
 func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
@@ -49,12 +44,12 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		sessions.Sessions("mysession", cookieStore),
 	)
 
+	router.GET("/setup", h.SetupService)
 	router.POST("login", h.Login)
 	router.GET("logout", h.Logout)
 	router.POST("newAccount", h.NewAccount)
 	router.GET("/:name", h.GetProfile)
 	router.GET("/getAllUsers", h.GetAllUsers)
-	router.GET("/setup", h.SetupService)
 
 	// todo profile router use authentication
 	// does pfp need to use sessions also?
@@ -65,7 +60,9 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		})
 	})
 
-	router.POST("/delete", h.DeleteUser)
+	// TODO and ^ behind pfp
+	router.POST("/deleteUser", h.DeleteUser)
+	router.POST("/deleteLink", h.DeleteLink)
 	router.POST("/update", h.UpdateUser)
 
 	// 		username := ctx.Param("name")

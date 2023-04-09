@@ -41,9 +41,6 @@ func (h *HandlerService) GetAllUsers(ctx *gin.Context) {
 		h.sugaredLogger.Desugar().Sync()
 	}()
 
-	fmt.Println("these are the rows:", rows)
-	fmt.Println("these are the rows:", rows)
-
 	var resp []GetAllUsersResponse
 	for rows.Next() {
 		var r GetAllUsersResponse
