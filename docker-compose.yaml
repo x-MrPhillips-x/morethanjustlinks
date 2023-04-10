@@ -19,32 +19,33 @@ services:
     container_name: morethanjustlinks-go
     volumes:
       - .:/morethanjustlinks/
+      # - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - GIN_MODE=release 
-    depends_on:
-      maria-db:
-        condition: service_healthy
-  maria-db:
-    image: mariadb:10-focal
-    container_name: morethanjustlinks-maria-db
-    command: '--default-authentication-plugin=mysql_native_password'
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --password=secret --silent"]
-      interval: 3s
-      retries: 5
-      start_period: 30s
-    expose:
-      - 3306
-    # setting some env vars to create the DB
-    environment:
-      MYSQL_ROOT_PASSWORD: "secret"   
-      MYSQL_DATABASE: "morethanjustlinks_db"
+#     depends_on:
+#       maria-db:
+#         condition: service_healthy
+#   maria-db:
+#     image: mariadb:10-focal
+#     container_name: morethanjustlinks-maria-db
+#     command: '--default-authentication-plugin=mysql_native_password'
+#     restart: always
+#     healthcheck:
+#       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --password=secret --silent"]
+#       interval: 3s
+#       retries: 5
+#       start_period: 30s
+#     expose:
+#       - 3306
+#     # setting some env vars to create the DB
+#     environment:
+#       MYSQL_ROOT_PASSWORD: "secret"   
+#       MYSQL_DATABASE: "morethanjustlinks_db"
 
-    # we mount a data volume to make sure we don't lose data
-    volumes:
-      - db-data:/var/lib/mysql
+#     # we mount a data volume to make sure we don't lose data
+#     volumes:
+#       - db-data:/var/lib/mysql
 
-volumes:
-  db-data:
+# volumes:
+#   db-data:
 
