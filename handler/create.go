@@ -44,6 +44,8 @@ type InsertUserRequest struct {
 }
 
 // SetupService is used to create tables required for service
+// TODO this should happen at init, but for demomstatstration purposes it is here
+// TODO add checks before just dropping tables
 func (h *HandlerService) SetupService(ctx *gin.Context) {
 	defer func() {
 		h.sugaredLogger.Desugar().Sync()
@@ -80,6 +82,8 @@ func (h *HandlerService) CreateLinksTable(ctx *gin.Context) {
 	ctx.Next()
 }
 
+// CreateLink is used to create links for users
+// TODO validate the input data
 func (h *HandlerService) CreateLink(ctx *gin.Context) {
 
 	// todo bind request data
@@ -94,6 +98,7 @@ func (h *HandlerService) CreateLink(ctx *gin.Context) {
 }
 
 // NewAccount is used to create a new user accounts
+// TODO send verification email for accounts created before allowing edits
 func (h *HandlerService) NewAccount(ctx *gin.Context) {
 
 	defer func() {

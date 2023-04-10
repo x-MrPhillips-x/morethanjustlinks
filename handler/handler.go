@@ -44,6 +44,11 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		sessions.Sessions("mysession", cookieStore),
 	)
 
+	router.GET("/", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"msg": "pong",
+		})
+	})
 	router.GET("/setup", h.SetupService)
 	router.POST("login", h.Login)
 	router.GET("logout", h.Logout)
