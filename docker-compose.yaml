@@ -1,6 +1,14 @@
 version: '3.7'
 
 services:
+  frontend:
+    build:
+      context: .
+    container_name: frontend
+    ports:
+      - 3000:3000
+    depends_on:
+      - proxy
   proxy:
     image: nginx
     volumes:
