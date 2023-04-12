@@ -6,6 +6,7 @@ import (
 
 	maria_db "example.com/morethanjustlinks/db"
 	"github.com/gin-gonic/contrib/sessions"
+	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -44,11 +45,9 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 		sessions.Sessions("mysession", cookieStore),
 	)
 
-	router.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"msg": "pong",
-		})
-	})
+	// Serve frontend static files
+	router.Use(static.Serve("/", static.LocalFile("./frontend", true)))
+
 	router.GET("/setup", h.SetupService)
 	router.POST("login", h.Login)
 	router.GET("logout", h.Logout)
