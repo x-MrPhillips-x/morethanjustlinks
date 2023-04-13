@@ -27,6 +27,7 @@ func (h *HandlerTestSuite) SetupTest() {
 
 	h.HandlerService = mock_handler
 	h.router = h.HandlerService.SetupHandlerServiceRoutes()
+	h.router.LoadHTMLGlob("./frontend/components/*")
 }
 
 func TestHandlerTestSuite(t *testing.T) {

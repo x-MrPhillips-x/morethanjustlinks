@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"time"
 
 	maria_db "example.com/morethanjustlinks/db"
@@ -47,47 +46,27 @@ func (h *HandlerService) SetupHandlerServiceRoutes() *gin.Engine {
 
 	// Serve frontend static files
 	router.Use(static.Serve("/", static.LocalFile("./frontend", true)))
+	router.LoadHTMLGlob("./frontend/components/*")
 
 	router.GET("/setup", h.SetupService)
-	router.POST("login", h.Login)
-	router.GET("logout", h.Logout)
-	router.POST("newAccount", h.NewAccount)
+	router.POST("/login", h.Login)
+	router.GET("/logout", h.Logout)
+	router.GET("/newAccountForm", h.GetNewAccountForm)
+	router.POST("/newAccount", h.NewAccount)
 	router.GET("/:name", h.GetProfile)
 	router.GET("/getAllUsers", h.GetAllUsers)
 
 	// todo profile router use authentication
 	// does pfp need to use sessions also?
-	pfp := router.Group("/:name/profile", h.Authentication)
-	pfp.POST("/edit", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"msg": "place holder for profile updates",
-		})
-	})
+	pfp := router.Group("/pfp")
+	// pfp.Use(h.Authentication)
+	pfp.GET("/edit", h.EditProfileForm)
+	pfp.POST("/edit", h.CreateLink)
 
 	// TODO and ^ behind pfp
-	router.POST("/deleteUser", h.DeleteUser)
-	router.POST("/deleteLink", h.DeleteLink)
-	router.POST("/update", h.UpdateUser)
-
-	// 		username := ctx.Param("name")
-	// 		if v == nil {
-	// 			count = 0
-	// 		} else {
-	// 			count = v.(int)
-	// 			count += 1
-	// 		}
-	// 		session.Set("count", count)
-	// 		session.Save()
-	// 		ctx.HTML(http.StatusOK, "profile.tmpl", gin.H{
-	// 			"count": count,
-	// 			"name":  username,
-	// 		})
-	// 	})
-	// 	api.GET("/setup", h.SetupService)
-	// 	api.GET("/getAllUsers", h.GetAllUsers)
-	// 	api.POST("/delete", h.DeleteUser)
-	// 	api.POST("/update", h.UpdateUser)
-	// }
+	pfp.POST("/deleteUser", h.DeleteUser)
+	pfp.POST("/deleteLink", h.DeleteLink)
+	pfp.POST("/update", h.UpdateUser)
 
 	return router
 }
