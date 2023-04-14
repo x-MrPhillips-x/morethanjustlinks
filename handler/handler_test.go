@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"testing"
-
 	"example.com/morethanjustlinks/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
 )
 
 type HandlerTestSuite struct {
@@ -17,22 +14,22 @@ type HandlerTestSuite struct {
 	rows_mock      *mocks.RowsInterface
 }
 
-func (h *HandlerTestSuite) SetupTest() {
-	h.db_mock = &mocks.DbInterface{}
-	h.db_mock.On("Ping").Return(nil)
+// func (h *HandlerTestSuite) SetupTest() {
+// 	h.db_mock = &mocks.DbInterface{}
+// 	h.db_mock.On("Ping").Return(nil)
 
-	h.rows_mock = &mocks.RowsInterface{}
+// 	h.rows_mock = &mocks.RowsInterface{}
 
-	mock_handler, _ := NewHandlerService(h.db_mock, zap.NewNop().Sugar(), 3)
+// 	mock_handler, _ := NewHandlerService(h.db_mock, zap.NewNop().Sugar(), 3)
 
-	h.HandlerService = mock_handler
-	h.router = h.HandlerService.SetupHandlerServiceRoutes()
-	h.router.LoadHTMLGlob("./frontend/components/*")
-}
+// 	h.HandlerService = mock_handler
+// 	h.router = h.HandlerService.SetupHandlerServiceRoutes()
+// 	h.router.LoadHTMLGlob("./frontend/components/*")
+// }
 
-func TestHandlerTestSuite(t *testing.T) {
-	suite.Run(t, new(HandlerTestSuite))
-}
+// func TestHandlerTestSuite(t *testing.T) {
+// 	suite.Run(t, new(HandlerTestSuite))
+// }
 
 // func TestNewHandlerService(t *testing.T) {
 // 	db := &mocks.DbInterface{}

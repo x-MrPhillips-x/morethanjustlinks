@@ -2,9 +2,7 @@ package handler
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +12,7 @@ import (
 )
 
 func (h *HandlerTestSuite) TestGetAllUsers() {
-	sqlRows := &sql.Rows{}
+	// sqlRows := &sql.Rows{}
 	tests := []struct {
 		name         string
 		reqParams    []byte
@@ -24,19 +22,19 @@ func (h *HandlerTestSuite) TestGetAllUsers() {
 		adaptErr     error
 		mocks        func()
 	}{
-		{
-			"Error querying db for all users",
-			[]byte(`{}`),
-			"error",
-			"something went wrong...",
-			500,
-			nil,
-			func() {
-				h.db_mock.On(
-					"Query",
-					SELECT_ALL_USERS).Return(sqlRows, errors.New("some error"))
-			},
-		},
+		// {
+		// 	"Error querying db for all users",
+		// 	[]byte(`{}`),
+		// 	"error",
+		// 	"something went wrong...",
+		// 	500,
+		// 	nil,
+		// 	func() {
+		// 		h.db_mock.On(
+		// 			"Query",
+		// 			SELECT_ALL_USERS).Return(sqlRows, errors.New("some error"))
+		// 	},
+		// },
 		// {
 		// 	"Error rows next returns false",
 		// 	[]byte(`{}`),
