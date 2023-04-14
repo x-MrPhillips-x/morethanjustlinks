@@ -1,3 +1,5 @@
+[![Go](https://github.com/x-MrPhillips-x/morethanjustlinks/actions/workflows/go.yml/badge.svg)](https://github.com/x-MrPhillips-x/morethanjustlinks/actions/workflows/go.yml)
+
 # morethanjustlinks
 is intended to share a free alternative to all my links, linktree, and the rest
 
