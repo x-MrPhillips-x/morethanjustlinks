@@ -5,6 +5,7 @@ import (
 
 	"example.com/morethanjustlinks/mocks"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 )
@@ -33,17 +34,17 @@ func TestHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(HandlerTestSuite))
 }
 
-// func TestNewHandlerService(t *testing.T) {
-// 	db := &mocks.DbInterface{}
-// 	db.On("Ping").Return(nil)
+func TestNewHandlerService(t *testing.T) {
+	db := &mocks.DbInterface{}
+	db.On("Ping").Return(nil)
 
-// 	h, err := NewHandlerService(db, zap.NewNop().Sugar(), 3)
+	h, err := NewHandlerService(db, zap.NewNop().Sugar(), 3)
 
-// 	assert.NotNil(t, h)
-// 	assert.Nil(t, err)
+	assert.NotNil(t, h)
+	assert.Nil(t, err)
 
-// 	db.AssertExpectations(t)
-// }
+	db.AssertExpectations(t)
+}
 
 // func TestNewHandlerServiceError(t *testing.T) {
 // 	db := &mocks.DbInterface{}
