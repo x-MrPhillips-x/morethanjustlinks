@@ -1,4 +1,4 @@
-[![Go](https://github.com/x-MrPhillips-x/morethanjustlinks/actions/workflows/go.yml/badge.svg)](https://github.com/x-MrPhillips-x/morethanjustlinks/actions/workflows/go.yml)
+[![Go](https://github.com/x-MrPhillips-x/morethanjustlinks/actions/workflows/go.yml/badge.svg)](https://github.com/x-MrPhillips-x/morethanjustlinks/actions/workflows/go.yml) [![codecov](https://codecov.io/gh/x-MrPhillips-x/morethanjustlinks/branch/main/graph/badge.svg?token=7YN9SBDGR1)](https://codecov.io/gh/x-MrPhillips-x/morethanjustlinks)
 
 # morethanjustlinks
 is intended to share a free alternative to all my links, linktree, and the rest
