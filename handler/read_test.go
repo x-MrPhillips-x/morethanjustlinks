@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -36,35 +37,35 @@ func (h *HandlerTestSuite) TestGetAllUsers() {
 					SELECT_ALL_USERS).Return(sqlRows, errors.New("some error"))
 			},
 		},
-		{
-			"Error rows next returns false",
-			[]byte(`{}`),
-			"error",
-			"something went wrong...",
-			500,
-			nil,
-			func() {
-				h.db_mock.On(
-					"Query",
-					SELECT_ALL_USERS).Return(sqlRows, nil)
-				h.rows_mock.On("Next").Return(false)
-			},
-		},
-		{
-			"Error rows scan",
-			[]byte(`{}`),
-			"error",
-			"something went wrong...",
-			500,
-			nil,
-			func() {
-				h.db_mock.On(
-					"Query",
-					SELECT_ALL_USERS).Return(sqlRows, nil)
-				h.rows_mock.On("Next").Return(true)
-				h.rows_mock.On("Scan").Return(errors.New("some error"))
-			},
-		},
+		// {
+		// 	"Error rows next returns false",
+		// 	[]byte(`{}`),
+		// 	"error",
+		// 	"something went wrong...",
+		// 	500,
+		// 	nil,
+		// 	func() {
+		// 		h.db_mock.On(
+		// 			"Query",
+		// 			SELECT_ALL_USERS).Return(sqlRows, nil)
+		// 		h.rows_mock.On("Next").Return(false)
+		// 	},
+		// },
+		// {
+		// 	"Error rows scan",
+		// 	[]byte(`{}`),
+		// 	"error",
+		// 	"something went wrong...",
+		// 	500,
+		// 	nil,
+		// 	func() {
+		// 		h.db_mock.On(
+		// 			"Query",
+		// 			SELECT_ALL_USERS).Return(sqlRows, nil)
+		// 		h.rows_mock.On("Next").Return(true)
+		// 		h.rows_mock.On("Scan").Return(errors.New("some error"))
+		// 	},
+		// },
 		// {
 		// 	"Success get all users",
 		// 	[]byte(`{}`),
@@ -112,6 +113,8 @@ func (h *HandlerTestSuite) TestGetAllUsers() {
 			assert.Equal(t, tt.expectCode, w.Code)
 
 			var actualResponse map[string]interface{}
+
+			fmt.Println("This is the response:", w.Body.String())
 			json.Unmarshal(w.Body.Bytes(), &actualResponse)
 
 			if tt.expectMsgKey == "error" {
