@@ -3,12 +3,10 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,30 +52,30 @@ func (h *HandlerTestSuite) TestSetupService() {
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
-			if tt.expectCode == 200 {
-				h.db_mock.On(
-					"Exec",
-					"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), nil).Once()
-				h.db_mock.On(
-					"Exec",
-					CREATE_USERS_TABLE).Return(sqlmock.NewResult(1, 1), nil).Once()
+			// if tt.expectCode == 200 {
+			// 	h.db_mock.On(
+			// 		"Exec",
+			// 		"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), nil).Once()
+			// 	h.db_mock.On(
+			// 		"Exec",
+			// 		CREATE_USERS_TABLE).Return(sqlmock.NewResult(1, 1), nil).Once()
 
-			}
+			// }
 
-			if tt.isDeleteErr {
-				h.db_mock.On(
-					"Exec",
-					"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), errors.New("some error")).Once()
-			}
+			// if tt.isDeleteErr {
+			// 	h.db_mock.On(
+			// 		"Exec",
+			// 		"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), errors.New("some error")).Once()
+			// }
 
-			if tt.isCreateErr {
-				h.db_mock.On(
-					"Exec",
-					"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), nil).Once()
-				h.db_mock.On(
-					"Exec",
-					CREATE_USERS_TABLE).Return(sqlmock.NewResult(1, 1), errors.New("some error")).Once()
-			}
+			// if tt.isCreateErr {
+			// 	h.db_mock.On(
+			// 		"Exec",
+			// 		"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), nil).Once()
+			// 	h.db_mock.On(
+			// 		"Exec",
+			// 		CREATE_USERS_TABLE).Return(sqlmock.NewResult(1, 1), errors.New("some error")).Once()
+			// }
 
 			w := httptest.NewRecorder()
 

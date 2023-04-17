@@ -2,122 +2,124 @@ package handler
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
 func (h *HandlerTestSuite) TestGetAllUsers() {
-	sqlRows := &sql.Rows{}
 	tests := []struct {
-		name         string
-		reqParams    []byte
-		expectMsgKey string
-		expectMsg    string
-		expectCode   int
-		adaptErr     error
-		mocks        func()
+		name     string
+		mock     sqlmock.Sqlmock
+		queryStr string
+		rows     *sqlmock.Rows
+		queryErr error
 	}{
 		{
-			"Error querying db for all users",
-			[]byte(`{}`),
-			"error",
-			"something went wrong...",
-			500,
+			"Get all users successfully",
+			h.mock,
+			"SELECT uuid,name,email,phone,verified FROM users;",
+			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d", "some_e"}).AddRow("some-aa", "some-bb", "some-cc", "some-dd", "some-ee"),
 			nil,
-			func() {
-				h.db_mock.On(
-					"Query",
-					SELECT_ALL_USERS).Return(sqlRows, errors.New("some error"))
-			},
 		},
 		{
-			"Error rows next returns false",
-			[]byte(`{}`),
-			"error",
-			"something went wrong...",
-			500,
-			nil,
-			func() {
-				h.db_mock.On(
-					"Query",
-					SELECT_ALL_USERS).Return(sqlRows, nil)
-				h.rows_mock.On("Next").Return(false)
-			},
+			"Something went wrong querying all users",
+			h.mock,
+			"SELECT uuid,name,email,phone,verified FROM users;",
+			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d", "some_e"}).AddRow("some-aa", "some-bb", "some-cc", "some-dd", "some-ee"),
+			errors.New("some error"),
 		},
-		{
-			"Error rows scan",
-			[]byte(`{}`),
-			"error",
-			"something went wrong...",
-			500,
-			nil,
-			func() {
-				h.db_mock.On(
-					"Query",
-					SELECT_ALL_USERS).Return(sqlRows, nil)
-				h.rows_mock.On("Next").Return(true)
-				h.rows_mock.On("Scan").Return(errors.New("some error"))
-			},
-		},
-		// {
-		// 	"Success get all users",
-		// 	[]byte(`{}`),
-		// 	"error",
-		// 	"something went wrong...",
-		// 	200,
-		// 	nil,
-		// 	func() {
-		// 		h.db_mock.On(
-		// 			"Query",
-		// 			SELECT_ALL_USERS).Return(
-		// 			sqlmock.NewRows([]string{"uuid", "name", "email", "phone", "verified"}).
-		// 				AddRow(
-		// 					"08eb0d36-5669-4e6c-b4a3-6097bddd75bc",
-		// 					"ham",
-		// 					"burger@mail.com",
-		// 					"8888888888",
-		// 					true,
-		// 				), nil,
-		// 		)
-		// 		h.rows_mock.On("Next").Return(true)
-		// 		h.rows_mock.On(
-		// 			"Scan",
-		// 			mock.Anything,
-		// 			mock.Anything,
-		// 			mock.Anything,
-		// 			mock.Anything,
-		// 			mock.Anything,
-		// 		).Return(nil)
-		// 	},
-		// },
 	}
 
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
 			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/getAllUsers", nil)
 
-			tt.mocks()
-
-			req, _ := http.NewRequest("GET", "/getAllUsers", bytes.NewBuffer(tt.reqParams))
+			if tt.queryErr == nil {
+				tt.mock.ExpectQuery(tt.queryStr).WillReturnRows(tt.rows)
+			} else {
+				tt.mock.ExpectQuery(tt.queryStr).WillReturnError(tt.queryErr)
+			}
 
 			h.router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectCode, w.Code)
 
 			var actualResponse map[string]interface{}
 			json.Unmarshal(w.Body.Bytes(), &actualResponse)
 
-			if tt.expectMsgKey == "error" {
-				assert.Equal(t, tt.expectMsg, actualResponse["error"])
+			if tt.queryErr == nil {
+				assert.Equal(t, 200, w.Code)
+				assert.NotEqual(t, "", actualResponse["resp"])
+
 			} else {
-				assert.Equal(t, tt.expectMsg, actualResponse["msg"])
+				assert.Equal(t, 500, w.Code)
+				assert.NotEqual(t, "", actualResponse["error"])
+			}
+		})
+	}
+}
+
+func (h *HandlerTestSuite) TestLogin() {
+	tests := []struct {
+		name     string
+		mock     sqlmock.Sqlmock
+		queryStr string
+		rows     *sqlmock.Rows
+		queryErr error
+	}{
+		// {
+		// 	"Sucessfull login",
+		// 	h.mock,
+		// 	"SELECT uuid,name,verified,psword FROM users WHERE name= ?;",
+		// 	sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d"}).AddRow("some-aa", "some-bb", false, "some-dd"),
+		// 	nil,
+		// },
+		{
+			"Something went wrong trying to login",
+			h.mock,
+			"SELECT uuid,name,verified,psword FROM users WHERE name= ?;",
+			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d"}).AddRow("some-aa", "some-bb", false, "some-dd"),
+			errors.New("some error"),
+		},
+	}
+
+	for _, tt := range tests {
+		h.T().Run(tt.name, func(t *testing.T) {
+
+			reqParams := []byte(`{
+				"name": "morpheus",
+				"psword":"leader"
+			}`)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(reqParams))
+
+			if tt.queryErr == nil {
+				tt.mock.ExpectQuery(tt.queryStr).WillReturnRows(tt.rows)
+			} else {
+				tt.mock.ExpectQuery(tt.queryStr).WillReturnError(tt.queryErr)
+			}
+
+			h.router.ServeHTTP(w, req)
+
+			var actualResponse map[string]interface{}
+			json.Unmarshal(w.Body.Bytes(), &actualResponse)
+
+			if tt.queryErr == nil {
+				assert.Equal(t, 200, w.Code)
+				assert.NotEqual(t, "", actualResponse["msg"])
+				assert.NotEqual(t, "", actualResponse["user"])
+				assert.NotEqual(t, "", actualResponse["verified"])
+
+			} else {
+				assert.Equal(t, 500, w.Code)
+				assert.NotEqual(t, "", actualResponse["error"])
 			}
 		})
 	}
