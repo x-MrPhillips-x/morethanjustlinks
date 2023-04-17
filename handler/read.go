@@ -29,6 +29,7 @@ func (h *HandlerService) GetAllUsers(ctx *gin.Context) {
 	ctx.Header("Content-Type", "application/json")
 
 	rows, err := h.maria_repo.Query(SELECT_ALL_USERS)
+
 	if err != nil {
 		h.sugaredLogger.Errorw("Error fetching all users", zap.Any("error", err))
 		ctx.Error(err)
@@ -121,7 +122,7 @@ func (h *HandlerService) Login(ctx *gin.Context) {
 	var err error
 	if err = ctx.BindJSON(&userAuth); err != nil {
 		h.sugaredLogger.Errorw("error adapting request", zap.Error(err))
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong..."})
 		return
 	}
 

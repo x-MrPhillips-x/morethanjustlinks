@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"example.com/morethanjustlinks/mocks"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -98,3 +99,74 @@ func TestQueryError(t *testing.T) {
 	db.AssertExpectations(t)
 
 }
+
+func TestQueryReturnedRows(t *testing.T) {
+	db, sqlmock, _ := sqlmock.New()
+
+	sqlmock.ExpectQuery("queryStr").WillReturnRows(sqlmock.NewRows([]string{"uuid"}).AddRow("some-uuid"))
+
+	rows, err := Query(db, "queryStr")
+
+	assert.Nil(t, err)
+
+	assert.NotNil(t, rows)
+
+	sqlmock.ExpectationsWereMet()
+
+}
+
+func TestQueryRowsNextTrue(t *testing.T) {
+	db, sqlmock, _ := sqlmock.New()
+
+	sqlmock.ExpectQuery("queryStr").WillReturnRows(sqlmock.NewRows([]string{"uuid"}).AddRow("some-uuid"))
+
+	rows_under_test, err := Query(db, "queryStr")
+
+	assert.True(t, Next(rows_under_test))
+
+	assert.Nil(t, err)
+
+	assert.NotNil(t, rows_under_test)
+
+	sqlmock.ExpectationsWereMet()
+
+}
+
+func TestQueryRowsNextFalse(t *testing.T) {
+	db, sqlmock, _ := sqlmock.New()
+
+	sqlmock.ExpectQuery("queryStr").WillReturnRows(sqlmock.NewRows([]string{}))
+
+	rows_under_test, err := Query(db, "queryStr")
+
+	assert.False(t, Next(rows_under_test))
+
+	assert.Nil(t, err)
+
+	assert.NotNil(t, rows_under_test)
+
+	sqlmock.ExpectationsWereMet()
+
+}
+
+type SomeTestStruct struct {
+	UUID string `json:"uuid"`
+}
+
+func TestQueryRowsScanUnsupportedScanError(t *testing.T) {
+	var resp SomeTestStruct
+	db, sqlmock, _ := sqlmock.New()
+
+	sqlmock.ExpectQuery("queryStr").WillReturnRows(sqlmock.NewRows([]string{"hair"}).AddRow("some-wig"))
+
+	rows_under_test, _ := Query(db, "queryStr")
+
+	assert.True(t, Next(rows_under_test))
+
+	assert.NotNil(t, Scan(rows_under_test, &resp))
+
+	sqlmock.ExpectationsWereMet()
+
+}
+
+// Todo the row is not texted correctly
