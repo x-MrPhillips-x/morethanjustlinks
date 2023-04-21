@@ -45,6 +45,11 @@ type InsertUserRequest struct {
 	Verified bool   `json:"verified,omitempty"`
 }
 
+type HasherInterface interface {
+	HashPassword(password string) (string, error)
+	CheckPasswordHash(password, hash string) bool
+}
+
 type InsertLinkRequest struct {
 	LinkTitle string `json:"linkTitle"`
 	Link      string `json:"link"`
@@ -125,27 +130,32 @@ func (h *HandlerService) GetNewAccountForm(ctx *gin.Context) {
 // TODO send verification email for accounts created before allowing edits
 func (h *HandlerService) NewAccount(ctx *gin.Context) {
 
-	defer func() {
-		h.sugaredLogger.Desugar().Sync()
-	}()
-
 	ctx.Header("Content-Type", "application/json")
 
 	// bind and validate input data
 	req, err := validateInsertUserRequest(ctx)
 	if err != nil {
+		h.sugaredLogger.Errorw("error validating insert user request", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "please enter the required request fields"})
 		return
 	}
 
 	rows, err := h.maria_repo.Query("SELECT COUNT(*) FROM users WHERE name = ?", req.Name)
+
+	defer func() {
+		h.sugaredLogger.Desugar().Sync()
+		// rows.Close()
+	}()
+
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.sugaredLogger.Errorw("error counting number of usersnames", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
 
 	userAlreadyExists, _ := UserAlreadyExists(rows)
 	if userAlreadyExists {
+		h.sugaredLogger.Errorw("error checking user already exists", zap.Error(err))
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
 		return
 	}
@@ -153,7 +163,8 @@ func (h *HandlerService) NewAccount(ctx *gin.Context) {
 	// encrypt password
 	hashPswd, err := HashPassword(req.Psword)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.sugaredLogger.Errorw("error hashing and salting", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
 
@@ -164,14 +175,15 @@ func (h *HandlerService) NewAccount(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		h.sugaredLogger.Errorw("error inserting users into db", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
 
 	_, err = result.LastInsertId()
 	if err != nil {
 		h.sugaredLogger.Errorw("Error retrieving last uuid", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
 

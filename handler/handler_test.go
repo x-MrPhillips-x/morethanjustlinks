@@ -1,47 +1,48 @@
 package handler
 
 import (
+	"database/sql"
+	"testing"
+
 	"example.com/morethanjustlinks/mocks"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 )
 
 type HandlerTestSuite struct {
 	suite.Suite
 	HandlerService *HandlerService
-	db_mock        *mocks.DbInterface
+	db             *sql.DB
+	mock           sqlmock.Sqlmock
 	router         *gin.Engine
-	rows_mock      *mocks.RowsInterface
 }
 
-// func (h *HandlerTestSuite) SetupTest() {
-// 	h.db_mock = &mocks.DbInterface{}
-// 	h.db_mock.On("Ping").Return(nil)
+func (h *HandlerTestSuite) SetupTest() {
+	h.db, h.mock, _ = sqlmock.New()
+	h.mock.ExpectPing()
 
-// 	h.rows_mock = &mocks.RowsInterface{}
-
-// 	mock_handler, _ := NewHandlerService(h.db_mock, zap.NewNop().Sugar(), 3)
-
-// 	h.HandlerService = mock_handler
-// 	h.router = h.HandlerService.SetupHandlerServiceRoutes()
-// 	h.router.LoadHTMLGlob("./frontend/components/*")
-// }
+	h.HandlerService, _ = NewHandlerService(h.db, zap.NewNop().Sugar(), 3)
+	h.router = h.HandlerService.SetupHandlerServiceRoutes()
+}
 
 // func TestHandlerTestSuite(t *testing.T) {
 // 	suite.Run(t, new(HandlerTestSuite))
 // }
 
-// func TestNewHandlerService(t *testing.T) {
-// 	db := &mocks.DbInterface{}
-// 	db.On("Ping").Return(nil)
+func TestNewHandlerService(t *testing.T) {
+	db := &mocks.DbInterface{}
+	db.On("Ping").Return(nil)
 
-// 	h, err := NewHandlerService(db, zap.NewNop().Sugar(), 3)
+	h, err := NewHandlerService(db, zap.NewNop().Sugar(), 3)
 
-// 	assert.NotNil(t, h)
-// 	assert.Nil(t, err)
+	assert.NotNil(t, h)
+	assert.Nil(t, err)
 
-// 	db.AssertExpectations(t)
-// }
+	db.AssertExpectations(t)
+}
 
 // func TestNewHandlerServiceError(t *testing.T) {
 // 	db := &mocks.DbInterface{}
