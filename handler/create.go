@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/mail"
 	"regexp"
@@ -163,8 +162,6 @@ func (h *HandlerService) NewAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
-
-	fmt.Println("guess we don't get a results")
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"msg": "successfully created new user",

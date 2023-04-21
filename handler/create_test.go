@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"example.com/morethanjustlinks/mocks"
@@ -22,6 +23,7 @@ func (h *HandlerTestSuite) TestSetupService() {
 		expectCode   int
 		isDeleteErr  bool
 		isCreateErr  bool
+		dbMocks      sqlmock.Sqlmock
 	}{
 		// {
 		// 	"Error dropping users table",
@@ -31,6 +33,7 @@ func (h *HandlerTestSuite) TestSetupService() {
 		// 	500,
 		// 	true,
 		// 	false,
+		// 	h.mock,
 		// },
 		// {
 		// 	"Success dropping user table, but failed to create users",
@@ -40,16 +43,18 @@ func (h *HandlerTestSuite) TestSetupService() {
 		// 	500,
 		// 	false,
 		// 	true,
+		// 	h.mock,
 		// },
-		// {
-		// 	"Happy path, users table dropped and create users table",
-		// 	[]byte(`{}`),
-		// 	"msg",
-		// 	"created user tables succesfully",
-		// 	200,
-		// 	false,
-		// 	false,
-		// },
+		{
+			"Happy path, users table dropped and create users table",
+			[]byte(`{}`),
+			"msg",
+			"tables are successfully created",
+			200,
+			false,
+			false,
+			h.mock,
+		},
 	}
 
 	for _, tt := range tests {
@@ -84,6 +89,10 @@ func (h *HandlerTestSuite) TestSetupService() {
 
 			req, _ := http.NewRequest("GET", "/setup", bytes.NewBuffer(tt.reqParams))
 
+			tt.dbMocks.ExpectExec("DROP TABLE IF EXISTS users;").WillReturnResult(sqlmock.NewResult(1, 1))
+			tt.dbMocks.ExpectExec("DROP TABLE IF EXISTS links;").WillReturnResult(sqlmock.NewResult(1, 1))
+			tt.dbMocks.ExpectExec(regexp.QuoteMeta(CREATE_USERS_TABLE)).WillReturnResult(sqlmock.NewResult(1, 1))
+			tt.dbMocks.ExpectExec(regexp.QuoteMeta(CREATE_LINKS_TABLE)).WillReturnResult(sqlmock.NewResult(1, 1))
 			h.router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectCode, w.Code)
