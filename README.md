@@ -35,7 +35,7 @@ curl http://localhost/setup \
 
 output
 ```
-{"msg":"created user tables succesfully"}%
+{"msg":"tables are successfully created"}%
 ```
 
 Then navigate to http://localhost and click Create new account.
