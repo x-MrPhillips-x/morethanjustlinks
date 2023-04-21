@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,43 +19,40 @@ func (h *HandlerTestSuite) TestHandlerService_DeleteLink() {
 		expectCode   int
 		expectMsgKey string
 		expectMsg    string
-		mocks        func()
+		dbMocks      sqlmock.Sqlmock
 	}{
-		// {
-		// 	"missing required uuid",
-		// 	DeleteLinkRequest{
-		// 		UUID: "",
-		// 	},
-		// 	400,
-		// 	"error",
-		// 	"error missing required uuid",
-		// 	func() {},
-		// },
-		// {
-		// 	"this is the first test",
-		// 	DeleteLinkRequest{
-		// 		UUID: "30a1ce10-e885-4652-a9cc-8c2bff55f8f2",
-		// 	},
-		// 	200,
-		// 	"msg",
-		// 	"Successfully deleted link",
-		// 	func() {
-		// 		h.db_mock.On(
-		// 			"Exec",
-		// 			"DELETE FROM links WHERE uuid = ?",
-		// 			"30a1ce10-e885-4652-a9cc-8c2bff55f8f2",
-		// 		).Return(sqlmock.NewResult(1, 1), nil)
-		// 	},
-		// },
+		{
+			"missing required uuid",
+			DeleteLinkRequest{
+				UUID: "",
+			},
+			400,
+			"error",
+			"error missing required uuid",
+			h.mock,
+		},
+		{
+			"this is the first test",
+			DeleteLinkRequest{
+				UUID: "30a1ce10-e885-4652-a9cc-8c2bff55f8f2",
+			},
+			200,
+			"msg",
+			"Successfully deleted link",
+			h.mock,
+		},
 	}
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			tt.mocks()
 			body, _ := json.Marshal(tt.reqParams)
 			req, _ := http.NewRequest("POST", "/deleteLink", bytes.NewBuffer(body))
+
+			if tt.expectCode == 200 {
+				tt.dbMocks.ExpectExec("DELETE FROM links WHERE uuid = ?").WillReturnResult(sqlmock.NewResult(1, 1))
+			}
 
 			h.router.ServeHTTP(w, req)
 
@@ -79,43 +77,40 @@ func (h *HandlerTestSuite) TestHandlerService_DeleteUser() {
 		expectCode   int
 		expectMsgKey string
 		expectMsg    string
-		mocks        func()
+		dbMocks      sqlmock.Sqlmock
 	}{
-		// {
-		// 	"missing required uuid",
-		// 	DeleteUserRequest{
-		// 		Name: "",
-		// 	},
-		// 	400,
-		// 	"error",
-		// 	"error missing required name",
-		// 	func() {},
-		// },
-		// {
-		// 	"Success user name is deleted",
-		// 	DeleteUserRequest{
-		// 		Name: "superman",
-		// 	},
-		// 	200,
-		// 	"msg",
-		// 	"Successfully deleted user",
-		// 	func() {
-		// 		h.db_mock.On(
-		// 			"Exec",
-		// 			"DELETE FROM users WHERE name = ?",
-		// 			"superman",
-		// 		).Return(sqlmock.NewResult(1, 1), nil)
-		// 	},
-		// },
+		{
+			"missing required uuid",
+			DeleteUserRequest{
+				Name: "",
+			},
+			400,
+			"error",
+			"error missing required name",
+			h.mock,
+		},
+		{
+			"Success user name is deleted",
+			DeleteUserRequest{
+				Name: "superman",
+			},
+			200,
+			"msg",
+			"Successfully deleted user",
+			h.mock,
+		},
 	}
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			tt.mocks()
 			body, _ := json.Marshal(tt.reqParams)
 			req, _ := http.NewRequest("POST", "/deleteUser", bytes.NewBuffer(body))
+
+			if tt.expectCode == 200 {
+				tt.dbMocks.ExpectExec("DELETE FROM users WHERE name = ?").WillReturnResult(sqlmock.NewResult(1, 1))
+			}
 
 			h.router.ServeHTTP(w, req)
 
