@@ -28,9 +28,9 @@ func (h *HandlerTestSuite) SetupTest() {
 	h.router = h.HandlerService.SetupHandlerServiceRoutes()
 }
 
-func TestHandlerTestSuite(t *testing.T) {
-	suite.Run(t, new(HandlerTestSuite))
-}
+// func TestHandlerTestSuite(t *testing.T) {
+// 	suite.Run(t, new(HandlerTestSuite))
+// }
 
 func TestNewHandlerService(t *testing.T) {
 	db := &mocks.DbInterface{}

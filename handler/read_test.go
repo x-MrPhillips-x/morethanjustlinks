@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -109,6 +110,8 @@ func (h *HandlerTestSuite) TestLogin() {
 			h.router.ServeHTTP(w, req)
 
 			var actualResponse map[string]interface{}
+
+			fmt.Println("This is the response:", w.Body.String())
 			json.Unmarshal(w.Body.Bytes(), &actualResponse)
 
 			if tt.queryErr == nil {
