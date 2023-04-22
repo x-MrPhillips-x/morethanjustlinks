@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -120,6 +121,56 @@ func (h *HandlerTestSuite) TestLogin() {
 			} else {
 				assert.Equal(t, 500, w.Code)
 				assert.NotEqual(t, "", actualResponse["error"])
+			}
+		})
+	}
+}
+
+func (h *HandlerTestSuite) TestHandlerService_GetProfile() {
+	tests := []struct {
+		name         string
+		dbMock       sqlmock.Sqlmock
+		expectedCode int
+		queryStr     string
+		rows         *sqlmock.Rows
+	}{
+		{
+			"Sucessfully get user profile",
+			h.mock,
+			200,
+			"select * from links where username = ?;",
+			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d"}).AddRow("some-aa", "some-bb", "some-cc", "some-dd"),
+		},
+		{
+			"something went wrong selecting user links",
+			h.mock,
+			500,
+			"",
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		h.T().Run(tt.name, func(t *testing.T) {
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/morpheus", nil)
+
+			if tt.expectedCode == 200 {
+				tt.dbMock.ExpectQuery(regexp.QuoteMeta(tt.queryStr)).WillReturnRows(tt.rows)
+			}
+
+			h.router.ServeHTTP(w, req)
+
+			var actualResponse map[string]interface{}
+			json.Unmarshal(w.Body.Bytes(), &actualResponse)
+
+			assert.Equal(t, tt.expectedCode, w.Code)
+
+			if tt.expectedCode >= 201 {
+				assert.NotEqual(t, "", actualResponse["error"])
+			} else {
+				assert.NotEqual(t, "", actualResponse["links"])
 			}
 		})
 	}

@@ -79,6 +79,7 @@ func (h *HandlerService) GetProfile(ctx *gin.Context) {
 
 	queryStr := "select * from links where username = ?;"
 	rows, err := h.maria_repo.Query(queryStr, name)
+
 	if err != nil {
 		h.sugaredLogger.Errorw("error getting profile data", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
@@ -171,10 +172,6 @@ func adaptRowsToGetAllUsersResponse(rows db.RowsInterface) ([]GetAllUsersRespons
 		}
 		resp = append(resp, r)
 	}
-
-	// if err := rows.Err(); err != nil {
-	// 	return resp, err
-	// }
 
 	return resp, nil
 }
