@@ -2,11 +2,13 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/mail"
 	"regexp"
 
 	"example.com/morethanjustlinks/db"
+	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -46,6 +48,11 @@ type InsertUserRequest struct {
 type HasherInterface interface {
 	HashPassword(password string) (string, error)
 	CheckPasswordHash(password, hash string) bool
+}
+
+type InsertLinkRequest struct {
+	LinkTitle string `json:"linkTitle"`
+	Link      string `json:"link"`
 }
 
 // SetupService is used to create tables required for service
@@ -90,16 +97,33 @@ func (h *HandlerService) CreateLinksTable(ctx *gin.Context) {
 // CreateLink is used to create links for users
 // TODO validate the input data
 func (h *HandlerService) CreateLink(ctx *gin.Context) {
+	defer func() {
+		h.sugaredLogger.Desugar().Sync()
+	}()
+
+	var req InsertLinkRequest
+
+	// should be able to grab userame and user uuid from session
+	session := sessions.Default(ctx)
+	name := session.Get("name")
 
 	// todo bind request data
+	if err := ctx.BindJSON((&req)); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing parameters to create a new link"})
+		return
+	}
 
 	_, err := h.maria_repo.Exec("insert into links (username,uuid,name,url) values (?,?,?,?);",
-		"ham", "30a1ce10-e885-4652-a9cc-8c2bff55f8f2", "morethanjustlinks", "morethanjustlinks.com")
+		name, uuid.New().String(), req.LinkTitle, req.Link)
 
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 
 	}
+}
+
+func (h *HandlerService) GetNewAccountForm(ctx *gin.Context) {
+	ctx.HTML(http.StatusOK, "new_pfp.tmpl", gin.H{})
 }
 
 // NewAccount is used to create a new user accounts
@@ -163,8 +187,8 @@ func (h *HandlerService) NewAccount(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"msg": "successfully created new user",
+	ctx.HTML(http.StatusOK, "home.tmpl", gin.H{
+		"msg": fmt.Sprintf("successfully created new user %s", req.Name),
 	})
 }
 
