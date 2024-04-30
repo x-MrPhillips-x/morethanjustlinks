@@ -1,9 +1,10 @@
 package handler
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 
+	"example.com/morethanjustlinks/models"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -17,61 +18,47 @@ type UpdateUserRequest struct {
 	Verified bool   `json:"verified,omitempty"`
 }
 
-func (h HandlerService) UpdateUser(ctx *gin.Context) {
-	defer func() {
-		h.sugaredLogger.Desugar().Sync()
-	}()
+func (h *Handler) UpdateUser(ctx *gin.Context) {
+	var req models.User
+	var user models.User
 
-	ctx.Header("Content-Type", "application/json")
+	if err := ctx.BindJSON(&req); err != nil {
+		h.sugaredLogger.Errorw("invalid update user request",
+			zap.Any("error", err.Error()),
+			zap.Any("req", req))
 
-	// bind and validate input data
-	req, err := validateUpdateUserRequest(ctx)
-	if err != nil {
-		h.sugaredLogger.Errorw("Error with update data", zap.Error(err))
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error with update data"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
 		return
-	}
-
-	// TODO verify not updating duplicate email,
-	// update in db
-	// sql := "UPDATE users SET name = ?,email = ?,phone = ?,verified = ? WHERE uuid = ?;"
-	// _, err = h.db.Exec(sql, req.Name, req.Email, req.Phone, req.Verified, req.UUID)
-
-	if err != nil {
-		h.sugaredLogger.Errorw("Error adding new user", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error adding new user"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"msg": "Successfully updated user",
-		"req": req,
-	})
-
-}
-
-func validateUpdateUserRequest(ctx *gin.Context) (UpdateUserRequest, error) {
-	var req UpdateUserRequest
-
-	if err := ctx.BindJSON((&req)); err != nil {
-		return req, errors.New("please enter a proper request to insert new user")
-	}
-
-	if req.Name == "" || req.Email == "" || req.Phone == "" || req.Psword == "" {
-		return req, errors.New("please enter the required request fields")
-	}
-
-	if !isValidUsername(req.Name) {
-		return req, errors.New("please enter a valid username")
 	}
 
 	if !isValidEmail(req.Email) {
-		return req, errors.New("please enter a valid email")
+		msg := fmt.Sprintf("%v is not a valid email address", req.Email)
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
+		return
 	}
 
 	if !isValidPhoneNumber(req.Phone) {
-		return req, errors.New("please enter a valid phone")
+		msg := fmt.Sprintf("%v is not a valid mobile number", req.Email)
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
+		return
 	}
 
-	return req, nil
+	if !isValidUsername(req.Name) {
+		msg := fmt.Sprintf("%v is not a valid mobile number", req.Email)
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
+		return
+	}
+
+	result := h.db.Model(&user).Updates(models.User{
+		Phone:    req.Phone,
+		Email:    req.Email,
+		Verified: req.Verified,
+		Role:     req.Role,
+	})
+
+	if result.Error != nil {
+		h.sugaredLogger.Errorw("error updating user", zap.Any("error", result.Error.Error()), zap.Any("user", user))
+		msg := "something went wrong..."
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": msg})
+	}
 }

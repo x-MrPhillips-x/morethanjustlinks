@@ -1,97 +1,51 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
+	"example.com/morethanjustlinks/models"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type DeleteUserRequest struct {
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"uuid"`
+	Name string    `json:"name"`
 }
 
 type DeleteLinkRequest struct {
 	UUID string `json:"uuid"`
 }
 
-func (h *HandlerService) DropUsersTable(ctx *gin.Context) {
-	_, err := h.maria_repo.Exec("DROP TABLE IF EXISTS users;")
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error dropping users"})
-		ctx.Error(err)
-	}
-	ctx.Next()
-}
-
-func (h *HandlerService) DropLinksTable(ctx *gin.Context) {
-	_, err := h.maria_repo.Exec("DROP TABLE IF EXISTS links;")
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error dropping links"})
-		ctx.Error(err)
-	}
-	ctx.Next()
-}
-
-func (h *HandlerService) DeleteUser(ctx *gin.Context) {
-	defer func() {
-		h.sugaredLogger.Desugar().Sync()
-	}()
-
-	var req DeleteUserRequest
-	ctx.Header("Content-Type", "application/json")
-
-	if err := ctx.BindJSON((&req)); err != nil {
-		h.sugaredLogger.Errorw("Error not a valid delete user request", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error not a valid delete user request"})
+func (h *Handler) DeleteUser(ctx *gin.Context) {
+	var user models.User
+	if err := ctx.BindJSON(&user); err != nil {
+		h.sugaredLogger.Errorw("Error not a valid delete user request",
+			zap.Any("error", err.Error()),
+			zap.Any("user", user))
+		msg := fmt.Sprintf("%s could not be deleted : %s", user.Name, err.Error())
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
 		return
 	}
 
-	if req.Name == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "error missing required name"})
+	result := h.db.Where("ID = ?", user.ID).Delete(&user)
+	if result.Error != nil {
+		h.sugaredLogger.Errorw("failed to delete user",
+			zap.Any("error", result.Error.Error()),
+			zap.Any("user", user))
+		msg := fmt.Sprintf("%s failed to delete", user.Name)
+		ctx.JSON(http.StatusOK, gin.H{"msg": msg})
 		return
 	}
 
-	// delete from db
-	sql := "DELETE FROM users WHERE name = ?"
-	_, err := h.maria_repo.Exec(sql, req.Name)
-	if err != nil {
-		h.sugaredLogger.Errorw("Error deleting user", zap.Any("error", err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user"})
+	if result.RowsAffected == 0 {
+		msg := fmt.Sprintf("%s failed to delete", user.Name)
+		ctx.JSON(http.StatusOK, gin.H{"msg": msg})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": "Successfully deleted user"})
-
-}
-
-func (h *HandlerService) DeleteLink(ctx *gin.Context) {
-	defer func() {
-		h.sugaredLogger.Desugar().Sync()
-	}()
-
-	var req DeleteLinkRequest
-	ctx.Header("Content-Type", "application/json")
-
-	if err := ctx.BindJSON((&req)); err != nil {
-		h.sugaredLogger.Errorw("Error not a valid delete link request", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error not a valid delete link request"})
-		return
-	}
-
-	if req.UUID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "error missing required uuid"})
-		return
-	}
-	// delete from db
-	sql := "DELETE FROM links WHERE uuid = ?"
-	_, err := h.maria_repo.Exec(sql, req.UUID)
-	if err != nil {
-		h.sugaredLogger.Errorw("Error deleting link", zap.Any("error", err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove link"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"msg": "Successfully deleted link"})
-
+	msg := fmt.Sprintf("%s was successfully deleted", user.Name)
+	ctx.JSON(http.StatusOK, gin.H{"msg": msg})
 }

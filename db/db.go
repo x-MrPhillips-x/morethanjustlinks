@@ -1,34 +1,27 @@
 package db
 
 import (
-	"database/sql"
-
-	_ "github.com/go-sql-driver/mysql"
+	"example.com/morethanjustlinks/models"
+	"gorm.io/gorm"
 )
 
-type DbInterface interface {
+var SQLDSN = "root:secret@tcp(morethanjustlinks-maria-db)/morethanjustlinks_db?charset=utf8mb4&parseTime=True&loc=Local"
+
+type SqlDB interface {
 	Ping() error
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
 }
 
-func Connect() (*sql.DB, error) {
-	return sql.Open("mysql", "root:secret@tcp(morethanjustlinks-maria-db)/morethanjustlinks_db")
-}
-
-func Ping(db DbInterface) error {
+func Ping(db SqlDB) error {
 	return db.Ping()
 }
 
-func Exec(db DbInterface, query string, args ...any) (sql.Result, error) {
-	return db.Exec(query, args...)
-}
+func NewGormDB(dialector gorm.Dialector, cfg *gorm.Config) (*gorm.DB, error) {
+	db, err := gorm.Open(dialector, cfg)
+	if err != nil {
+		return nil, err
+	}
 
-func Query(db DbInterface, query string, args ...any) (*sql.Rows, error) {
-	return db.Query(query, args...)
-}
+	db.AutoMigrate(&models.User{})
 
-func QueryRow(db DbInterface, query string, args ...any) *sql.Row {
-	return db.QueryRow(query, args...)
+	return db, err
 }
