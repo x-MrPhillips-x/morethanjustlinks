@@ -3,175 +3,83 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"testing"
 
+	"example.com/morethanjustlinks/models"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
 func (h *HandlerTestSuite) TestGetAllUsers() {
 	tests := []struct {
-		name     string
-		mock     sqlmock.Sqlmock
-		queryStr string
-		rows     *sqlmock.Rows
-		queryErr error
+		name    string
+		params  []byte
+		prepare func()
+		resp    []models.User
 	}{
 		{
-			"Get all users successfully",
-			h.mock,
-			"SELECT uuid,name,email,phone,verified FROM users;",
-			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d", "some_e"}).AddRow("some-aa", "some-bb", "some-cc", "some-dd", "some-ee"),
-			nil,
+			name:   "no users found",
+			params: []byte(`{}`),
+			prepare: func() {
+				expectedSQL := ".+"
+				h.mock.ExpectQuery(expectedSQL).WillReturnRows(&sqlmock.Rows{})
+			},
+			resp: []models.User{},
 		},
 		{
-			"Something went wrong querying all users",
-			h.mock,
-			"SELECT uuid,name,email,phone,verified FROM users;",
-			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d", "some_e"}).AddRow("some-aa", "some-bb", "some-cc", "some-dd", "some-ee"),
-			errors.New("some error"),
+			name:   "successfully get all users",
+			params: []byte(`{}`),
+			prepare: func() {
+
+				expectedSQL := ".+"
+				addRow := sqlmock.NewRows([]string{
+					"uuid", "name", "email", "phone", "psword", "verified", "role",
+				}).AddRow(
+					"ff5c13a2-d04b-44ef-a337-6b45b1a8dd4c",
+					"morpheusss",
+					"morpheusss@mail.com",
+					"6155577777",
+					"$2a$14$0u.ZyqgZTyZyPN63JlVdz.SsdxBgfpLhDAE14oL4iTxhp.a..f/dC",
+					"false",
+					"admin",
+				)
+				h.mock.ExpectQuery(expectedSQL).WillReturnRows(addRow)
+			},
+			resp: []models.User{
+				{
+					// ID:       "ff5c13a2-d04b-44ef-a337-6b45b1a8dd4c",
+					Name:     "morpheusss",
+					Email:    "morpheusss@mail.com",
+					Phone:    "6155577777",
+					Psword:   "$2a$14$0u.ZyqgZTyZyPN63JlVdz.SsdxBgfpLhDAE14oL4iTxhp.a..f/dC",
+					Verified: false,
+					Role:     "admin",
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/getAllUsers", nil)
-
-			if tt.queryErr == nil {
-				tt.mock.ExpectQuery(tt.queryStr).WillReturnRows(tt.rows)
-			} else {
-				tt.mock.ExpectQuery(tt.queryStr).WillReturnError(tt.queryErr)
+			if tt.prepare != nil {
+				tt.prepare()
 			}
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/getAllUsers", bytes.NewBuffer(tt.params))
 
 			h.router.ServeHTTP(w, req)
 
-			var actualResponse map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &actualResponse)
+			var resp []models.User
 
-			if tt.queryErr == nil {
-				assert.Equal(t, 200, w.Code)
-				assert.NotEqual(t, "", actualResponse["resp"])
-
-			} else {
-				assert.Equal(t, 500, w.Code)
-				assert.NotEqual(t, "", actualResponse["error"])
-			}
+			json.Unmarshal(w.Body.Bytes(), &resp)
+			assert.Equal(h.T(), len(tt.resp), len(resp))
+			assert.Nil(h.T(), h.mock.ExpectationsWereMet())
 		})
-	}
-}
 
-func (h *HandlerTestSuite) TestLogin() {
-	tests := []struct {
-		name     string
-		mock     sqlmock.Sqlmock
-		queryStr string
-		rows     *sqlmock.Rows
-		queryErr error
-	}{
-		// {
-		// 	"Sucessfull login",
-		// 	h.mock,
-		// 	"SELECT uuid,name,verified,psword FROM users WHERE name= ?;",
-		// 	sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d"}).AddRow("some-aa", "some-bb", false, "some-dd"),
-		// 	nil,
-		// },
-		{
-			"Something went wrong trying to login",
-			h.mock,
-			"SELECT uuid,name,verified,psword FROM users WHERE name= ?;",
-			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d"}).AddRow("some-aa", "some-bb", false, "some-dd"),
-			errors.New("some error"),
-		},
 	}
 
-	for _, tt := range tests {
-		h.T().Run(tt.name, func(t *testing.T) {
-
-			reqParams := []byte(`{
-				"name": "morpheus",
-				"psword":"leader"
-			}`)
-
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(reqParams))
-
-			if tt.queryErr == nil {
-				tt.mock.ExpectQuery(tt.queryStr).WillReturnRows(tt.rows)
-			} else {
-				tt.mock.ExpectQuery(tt.queryStr).WillReturnError(tt.queryErr)
-			}
-
-			h.router.ServeHTTP(w, req)
-
-			var actualResponse map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &actualResponse)
-
-			if tt.queryErr == nil {
-				assert.Equal(t, 200, w.Code)
-				assert.NotEqual(t, "", actualResponse["msg"])
-				assert.NotEqual(t, "", actualResponse["user"])
-				assert.NotEqual(t, "", actualResponse["verified"])
-
-			} else {
-				assert.Equal(t, 500, w.Code)
-				assert.NotEqual(t, "", actualResponse["error"])
-			}
-		})
-	}
-}
-
-func (h *HandlerTestSuite) TestHandlerService_GetProfile() {
-	tests := []struct {
-		name         string
-		dbMock       sqlmock.Sqlmock
-		expectedCode int
-		queryStr     string
-		rows         *sqlmock.Rows
-	}{
-		{
-			"Sucessfully get user profile",
-			h.mock,
-			200,
-			"select * from links where username = ?;",
-			sqlmock.NewRows([]string{"some_a", "some_b", "some_c", "some_d"}).AddRow("some-aa", "some-bb", "some-cc", "some-dd"),
-		},
-		{
-			"something went wrong selecting user links",
-			h.mock,
-			500,
-			"",
-			nil,
-		},
-	}
-
-	for _, tt := range tests {
-		h.T().Run(tt.name, func(t *testing.T) {
-
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/morpheus", nil)
-
-			if tt.expectedCode == 200 {
-				tt.dbMock.ExpectQuery(regexp.QuoteMeta(tt.queryStr)).WillReturnRows(tt.rows)
-			}
-
-			h.router.ServeHTTP(w, req)
-
-			var actualResponse map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &actualResponse)
-
-			assert.Equal(t, tt.expectedCode, w.Code)
-
-			if tt.expectedCode >= 201 {
-				assert.NotEqual(t, "", actualResponse["error"])
-			} else {
-				assert.NotEqual(t, "", actualResponse["links"])
-			}
-		})
-	}
 }

@@ -3,7 +3,7 @@
 # morethanjustlinks
 is intended to share a free alternative to all my links, linktree, and the rest
 
-ngnix + go + gin + frontend to display your links dynamically
+go + gin + frontend to display your links dynamically
 
 ## quick start guide
 
@@ -21,22 +21,7 @@ Start service locally
 docker compose up
 ```
 
-## App instructions
+Frontend 🚧 http://localhost 
 
-To demostrate the app restAPI, send the curl below to setup db tables to support new accouts and links
-
-
-```
-curl http://localhost/setup \
-    --include \
-    --header "Content-Type: application/json" \
-    --request "GET" \
-```
-
-output
-```
-{"msg":"tables are successfully created"}%
-```
-
-Then navigate to http://localhost and click Create new account.
+API [postman collection](/curl_and_postman_collection/More%20Than%20Just%20Links.postman_collection.json) and [curl commands](/curl_and_postman_collection/README.md)
 

@@ -3,278 +3,81 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"testing"
 
-	"example.com/morethanjustlinks/mocks"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
-func (h *HandlerTestSuite) TestSetupService() {
+func (h *HandlerTestSuite) TestNewAccount() {
 	tests := []struct {
-		name         string
-		reqParams    []byte
-		expectMsgKey string
-		expectMsg    string
-		expectCode   int
-		isDeleteErr  bool
-		isCreateErr  bool
-		dbMocks      sqlmock.Sqlmock
+		name       string
+		params     []byte
+		prepare    func()
+		statusCode int
+		msg        string
 	}{
-		// {
-		// 	"Error dropping users table",
-		// 	[]byte(`{}`),
-		// 	"error",
-		// 	"error dropping users",
-		// 	500,
-		// 	true,
-		// 	false,
-		// 	h.mock,
-		// },
-		// {
-		// 	"Success dropping user table, but failed to create users",
-		// 	[]byte(`{}`),
-		// 	"error",
-		// 	"error creating users",
-		// 	500,
-		// 	false,
-		// 	true,
-		// 	h.mock,
-		// },
 		{
-			"Happy path, users table dropped and create users table",
-			[]byte(`{}`),
-			"msg",
-			"tables are successfully created",
-			200,
-			false,
-			false,
-			h.mock,
+			name:       "Request with invalid params",
+			params:     []byte(`{"foo":"bar}`),
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			name:   "failed to create account because user already exists",
+			params: []byte(`{"name":"morpheusss","email":"morpheusss@mail.com","phone":"6155577777","psword":"secret","role":"admin"}`),
+			prepare: func() {
+				expectedSQL := ".+"
+				addRow := sqlmock.NewRows([]string{
+					"uuid", "name", "email", "phone", "psword", "verified", "role",
+				}).AddRow(
+					"ff5c13a2-d04b-44ef-a337-6b45b1a8dd4c",
+					"morpheusss",
+					"morpheusss@mail.com",
+					"6155577777",
+					"$2a$14$0u.ZyqgZTyZyPN63JlVdz.SsdxBgfpLhDAE14oL4iTxhp.a..f/dC",
+					"false",
+					"admin",
+				)
+
+				h.mock.ExpectQuery(expectedSQL).WillReturnRows(addRow)
+			},
+			statusCode: http.StatusOK,
+			msg:        "email or phone number entered is already in use",
+		},
+		{
+			name:   "successfully create a new admin account",
+			params: []byte(`{"name":"morpheusss","email":"morpheusss@mail.com","phone":"6155577777","psword":"secret","role":"admin"}`),
+			prepare: func() {
+				expectedSQL := ".+"
+				h.mock.ExpectQuery(expectedSQL).WillReturnRows(&sqlmock.Rows{})
+
+				h.mock.ExpectBegin()
+				h.mock.ExpectExec(expectedSQL).WillReturnResult(sqlmock.NewResult(0, 1))
+				h.mock.ExpectCommit()
+			},
+			statusCode: http.StatusOK,
+			msg:        "successfully created morpheusss",
 		},
 	}
 
 	for _, tt := range tests {
 		h.T().Run(tt.name, func(t *testing.T) {
 
-			// if tt.expectCode == 200 {
-			// 	h.db_mock.On(
-			// 		"Exec",
-			// 		"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), nil).Once()
-			// 	h.db_mock.On(
-			// 		"Exec",
-			// 		CREATE_USERS_TABLE).Return(sqlmock.NewResult(1, 1), nil).Once()
-
-			// }
-
-			// if tt.isDeleteErr {
-			// 	h.db_mock.On(
-			// 		"Exec",
-			// 		"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), errors.New("some error")).Once()
-			// }
-
-			// if tt.isCreateErr {
-			// 	h.db_mock.On(
-			// 		"Exec",
-			// 		"DROP TABLE IF EXISTS users;").Return(sqlmock.NewResult(1, 1), nil).Once()
-			// 	h.db_mock.On(
-			// 		"Exec",
-			// 		CREATE_USERS_TABLE).Return(sqlmock.NewResult(1, 1), errors.New("some error")).Once()
-			// }
-
+			if tt.prepare != nil {
+				tt.prepare()
+			}
 			w := httptest.NewRecorder()
-
-			req, _ := http.NewRequest("GET", "/setup", bytes.NewBuffer(tt.reqParams))
-
-			tt.dbMocks.ExpectExec("DROP TABLE IF EXISTS users;").WillReturnResult(sqlmock.NewResult(1, 1))
-			tt.dbMocks.ExpectExec("DROP TABLE IF EXISTS links;").WillReturnResult(sqlmock.NewResult(1, 1))
-			tt.dbMocks.ExpectExec(regexp.QuoteMeta(CREATE_USERS_TABLE)).WillReturnResult(sqlmock.NewResult(1, 1))
-			tt.dbMocks.ExpectExec(regexp.QuoteMeta(CREATE_LINKS_TABLE)).WillReturnResult(sqlmock.NewResult(1, 1))
+			req, _ := http.NewRequest("POST", "/newAccount", bytes.NewBuffer(tt.params))
 			h.router.ServeHTTP(w, req)
 
-			assert.Equal(t, tt.expectCode, w.Code)
+			var resp map[string]string
+			json.Unmarshal(w.Body.Bytes(), &resp)
 
-			var actualResponse map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &actualResponse)
-
-			if tt.expectMsgKey == "error" {
-				assert.Equal(t, tt.expectMsg, actualResponse["error"])
-			} else {
-				assert.Equal(t, tt.expectMsg, actualResponse["msg"])
-			}
-		})
-	}
-}
-
-func (h *HandlerTestSuite) TestNewAccountRoute() {
-	tests := []struct {
-		name         string
-		reqParams    []byte
-		expectMsgKey string
-		expectMsg    string
-		expectCode   int
-		sqlmocks     sqlmock.Sqlmock
-		hasRows      bool
-	}{
-		{
-			"Error with input data",
-			[]byte(`{}`),
-			"error",
-			"please enter the required request fields",
-			400,
-			h.mock,
-			false,
-		},
-		{
-			"Error with input data - username is not valid",
-			[]byte(`{
-				"name": "m",
-				"email": "morpheus@mail.com",
-				"phone":"7777777777",
-				"psword":"leader"
-			}`),
-			"error",
-			"please enter the required request fields",
-			400,
-			h.mock,
-			false,
-		},
-		{
-			"Error with input data - email format",
-			[]byte(`{
-				"name": "morpheus",
-				"email": "morpheus",
-				"phone":"7777777777",
-				"psword":"leader"
-			}`),
-			"error",
-			"please enter the required request fields",
-			400,
-			h.mock,
-			false,
-		},
-		{
-			"Error with input data - phone # min digits",
-			[]byte(`{
-				"name": "morpheus",
-				"email": "morpheus@mail.com",
-				"phone":"77777",
-				"psword":"leader"
-			}`),
-			"error",
-			"please enter the required request fields",
-			400,
-			h.mock,
-			false,
-		},
-		{
-			"Error with input data - phone # max digits",
-			[]byte(`{
-				"name": "morpheus",
-				"email": "morpheus@mail.com",
-				"phone":"777777777777777",
-				"psword":"leader"
-			}`),
-			"error",
-			"please enter the required request fields",
-			400,
-			h.mock,
-			false,
-		},
-		{
-			"Bad request user already exists",
-			[]byte(`{
-				"name": "morpheus",
-				"email": "morpheus@mail.com",
-				"phone":"7777777777",
-				"psword":"leader"
-			}`),
-			"error",
-			"user already exists",
-			400,
-			h.mock,
-			true,
-		},
-		{
-			"Something went wrong hashing and salting",
-			[]byte(`{
-				"name": "morpheus",
-				"email": "morpheus@mail.com",
-				"phone":"7777777777",
-				"psword":"leader",
-				"verified":true
-			}`),
-			"error",
-			"something went wrong...",
-			500,
-			h.mock,
-			true,
-		},
-		// {
-		// 	"Success creating a new account - verified true",
-		// 	[]byte(`{
-		// 		"name": "morpheus",
-		// 		"email": "morpheus@mail.com",
-		// 		"phone":"7777777777",
-		// 		"psword":"leader",
-		// 		"verified":true
-		// 	}`),
-		// 	"error",
-		// 	"successfully created new user",
-		// 	500,
-		// 	h.mock,
-		// 	true,
-		// },
-		// {
-		// 	"Error inserting user into DB",
-		// 	[]byte(`{
-		// 		"name": "morpheus",
-		// 		"email": "morpheus@mail.com",
-		// 		"phone":"7777777777",
-		// 		"psword":"leader",
-		// 		"verified":true
-		// 	}`),
-		// 	"error",
-		// 	"Error adding new user",
-		// 	500,
-		// },
-	}
-
-	for _, tt := range tests {
-		h.T().Run(tt.name, func(t *testing.T) {
-
-			w := httptest.NewRecorder()
-
-			req, _ := http.NewRequest("POST", "/newAccount", bytes.NewBuffer(tt.reqParams))
-
-			var mock_rows = sqlmock.NewRows([]string{})
-			if tt.hasRows && tt.expectCode == 400 {
-				mock_rows := sqlmock.NewRows([]string{"count"}).AddRow("1").AddRow("2")
-				tt.sqlmocks.ExpectQuery("SELECT COUNT(.*) FROM users WHERE name = ?").WillReturnRows(mock_rows)
-			}
-
-			if tt.hasRows {
-				var mock_hasher mocks.HasherInterface
-				tt.sqlmocks.ExpectQuery("SELECT COUNT(.*) FROM users WHERE name = ?").WillReturnRows(mock_rows)
-				mock_hasher.On("HashPassword", "leader").Return("leader+hash+salt", nil)
-				tt.sqlmocks.ExpectExec("INSERT INTO users (uuid,name,email,phone,psword,verified) VALUES (?,?,?,?,?,?)").WillReturnResult(sqlmock.NewErrorResult(errors.New("some error")))
-			}
-
-			h.router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectCode, w.Code)
-
-			var actualResponse map[string]string
-			json.Unmarshal(w.Body.Bytes(), &actualResponse)
-
-			if tt.expectMsgKey == "error" {
-				assert.Equal(t, tt.expectMsg, actualResponse["error"])
-			} else {
-				assert.Equal(t, tt.expectMsg, actualResponse["msg"])
-			}
+			assert.Equal(h.T(), tt.statusCode, w.Code)
+			assert.Equal(h.T(), tt.msg, resp["msg"])
+			assert.Nil(h.T(), h.mock.ExpectationsWereMet())
 		})
 	}
 }

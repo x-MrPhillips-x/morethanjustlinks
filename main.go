@@ -6,24 +6,26 @@ import (
 	"example.com/morethanjustlinks/db"
 	"example.com/morethanjustlinks/handler"
 	"go.uber.org/zap"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func main() {
-	db, err := db.Connect()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s, err := handler.NewHandlerService(db, logger.Sugar(), handler.PING_DB_ATTEMPTS)
+	gormDB, err := db.NewGormDB(mysql.Open(db.SQLDSN), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	router := s.SetupHandlerServiceRoutes()
+	s, err := handler.NewHandler(gormDB, logger.Sugar(), handler.PING_DB_ATTEMPTS)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router := s.SetupHandlerRoutes()
 	router.Run(":8080")
 }
