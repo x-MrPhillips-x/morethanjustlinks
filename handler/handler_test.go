@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"example.com/morethanjustlinks/config"
 	"example.com/morethanjustlinks/db"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func (h *HandlerTestSuite) SetupTest() {
 
 	assert.Nil(h.T(), err)
 
-	h.handler, err = NewHandler(h.gormdb, zap.NewNop().Sugar(), 3)
+	h.handler, err = NewHandler(config.AppConfig{}, h.gormdb, zap.NewNop().Sugar(), 3)
 	assert.Nil(h.T(), err)
 
 	h.router = h.handler.SetupHandlerRoutes()

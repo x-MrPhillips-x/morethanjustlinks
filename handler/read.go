@@ -1,46 +1,43 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"example.com/morethanjustlinks/models"
+	"example.com/morethanjustlinks/user"
+	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-func (h *Handler) GetUserByName(ctx *gin.Context) {
+func (h *Handler) GetUserByID(ctx *gin.Context) {
 	var req models.GetUserRequest
 	var user models.User
 
-	if err := ctx.BindJSON(&req); err != nil {
-		h.sugaredLogger.Errorw("error getting user",
-			zap.Any("error", err.Error()),
-			zap.Any("request", req))
+	req.ID = ctx.Query("id")
 
-		msg := fmt.Sprintf("%v is not a valid user", req.Name)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
-	}
-
-	result := h.db.First(&user, "name = ?", req.Name)
+	result := h.db.First(&user, "id = ?", req.ID)
 
 	if result.RowsAffected == 0 {
-		ctx.JSON(http.StatusOK, gin.H{"msg": "user not found"})
+		ctx.JSON(http.StatusOK, gin.H{"message": "user not found"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": user})
+	ctx.JSON(http.StatusOK, gin.H{"message": user})
 }
 
 func (h *Handler) GetAllUsers(ctx *gin.Context) {
-	ctx.Header("Content-Type", "application/json")
 	var users []models.User
+	session := sessions.Default(ctx)
+	count := session.Get("count")
 	result := h.db.Find(&users)
 	if result.RowsAffected > 0 {
-		ctx.JSON(http.StatusOK, users)
+		ctx.JSON(http.StatusOK, gin.H{"message": users, "count": count})
 		return
 	}
-	ctx.JSON(http.StatusOK, []models.User{})
+
+	ctx.JSON(http.StatusOK, gin.H{"message": []models.User{}})
+
 }
 
 type UserLink struct {
@@ -95,88 +92,61 @@ type UserLink struct {
 // 	})
 // }
 
-// func (h *HandlerService) Login(ctx *gin.Context) {
+func (h *Handler) Login(ctx *gin.Context) {
 
-// 	defer func() {
-// 		h.sugaredLogger.Desugar().Sync() // flushes buffer, if any
-// 	}()
+	defer func() {
+		h.sugaredLogger.Desugar().Sync() // flushes buffer, if any
+	}()
 
-// 	ctx.Header("Content-Type", "application/json")
+	ctx.Header("Content-Type", "application/json")
 
-// 	// Bind the input data
-// 	var userAuth user.Auth
-// 	var err error
-// 	if err = ctx.BindJSON(&userAuth); err != nil {
-// 		h.sugaredLogger.Errorw("error adapting request", zap.Error(err))
-// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong..."})
-// 		return
-// 	}
+	// Bind the input data
+	var req user.Auth
+	var err error
+	if err = ctx.BindJSON(&req); err != nil {
+		h.sugaredLogger.Errorw("error adapting request", zap.Error(err))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong..."})
+		return
+	}
 
-// 	if userAuth.Name == "" || userAuth.Psword == "" {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "please enter required username and password"})
-// 		return
-// 	}
+	if req.Email == "" || req.Psword == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "please enter required username and password"})
+		return
+	}
 
-// 	var foundUser user.User
-// 	if err := h.maria_repo.QueryRow(
-// 		LOGIN_USER_QUERY, userAuth.Name).
-// 		Scan(&foundUser.UUID, &foundUser.Name, &foundUser.Verified, &foundUser.Psword); err != nil {
+	var foundUser models.User
+	h.db.Where("email = ? ", req.Email).First(&foundUser)
 
-// 		h.sugaredLogger.Errorw("account probably does not exists", zap.Error(err))
-// 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err})
-// 		return
-// 	}
+	// Check password hash + salt
+	if match := CheckPasswordHash(req.Psword, foundUser.Psword); !match {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized user"})
+		return
+	}
 
-// 	// Check password hash + salt
-// 	match := CheckPasswordHash(userAuth.Psword, foundUser.Psword)
+	// set the session data
+	// for nextjs middleware
+	session := sessions.Default(ctx)
+	var uuid int
 
-// 	if !match {
-// 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized user"})
-// 		return
-// 	}
+	if v := session.Get("uuid"); v == nil {
+		uuid = 1
+		session.Set("uuid", uuid)
+		session.Save()
+	}
 
-// 	// set the session data
-// 	session := sessions.Default(ctx)
-// 	session.Set("uuid", uuid.New().String())
-// 	session.Save()
-// 	// if err := session.Save(); err != nil {
-// 	// 	h.sugaredLogger.Errorw("error saving session data", zap.Error(err))
-// 	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": err})
-// 	// 	return
-// 	// }
+	ctx.JSON(http.StatusOK, gin.H{"message": "successful login", "user": foundUser.Name, "verified": foundUser.Verified, "uuid": uuid})
+}
 
-// 	ctx.JSON(http.StatusOK, gin.H{"msg": "successful login", "user": foundUser.Name, "verified": foundUser.Verified})
-// }
+func (h *Handler) Logout(ctx *gin.Context) {
+	session := sessions.Default(ctx)
 
-// func adaptRowsToGetAllUsersResponse(rows db.RowsInterface) ([]GetAllUsersResponse, error) {
-// 	var resp []GetAllUsersResponse
-// 	for rows.Next() {
-// 		var r GetAllUsersResponse
-// 		if err := rows.Scan(&r.UUID, &r.Name, &r.Email, &r.Phone, &r.Verified); err != nil {
-// 			return resp, err
-// 		}
-// 		resp = append(resp, r)
-// 	}
+	count0 := session.Get("count")
+	session.Clear()
+	session.Save()
+	count1 := session.Get("count")
 
-// 	return resp, nil
-// }
+	// TODO update DB
 
-// func (h *HandlerService) Authentication(ctx *gin.Context) {
-// 	session := sessions.Default(ctx)
-// 	sessionUUID := session.Get("uuid")
+	ctx.JSON(http.StatusOK, gin.H{"count0": count0, "count1": count1, "message": "successful logout"})
 
-// 	if sessionUUID == nil {
-// 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg": "not an authorized user"})
-// 		return
-// 	}
-// 	ctx.Next()
-// }
-
-// func (h *HandlerService) Logout(ctx *gin.Context) {
-// 	session := sessions.Default(ctx)
-// 	session.Clear()
-// 	session.Save()
-
-// 	ctx.JSON(http.StatusOK, gin.H{"msg": "successful logout"})
-
-// }
+}

@@ -2,12 +2,12 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/mail"
 	"regexp"
 
 	"example.com/morethanjustlinks/models"
+	"example.com/morethanjustlinks/presentation"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -33,21 +33,21 @@ type HasherInterface interface {
 func (h *Handler) NewAccount(ctx *gin.Context) {
 	var user models.User
 	var err error
-	// var users []models.User
 
 	req, err := validateInsertUserRequest(ctx)
-
 	if err != nil {
 		h.sugaredLogger.Errorw("error validating insert user request", zap.Any("req", req), zap.Any("err", err.Error()))
-		msg := fmt.Sprintf("Bad request, %s", err.Error())
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		ctx.JSON(http.StatusBadRequest, handleValidationErrors(err))
 		return
 	}
 
 	err = h.db.Where("phone = ? OR email = ?", req.Phone, req.Email).First(&user).Error
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		h.sugaredLogger.Warnw("email/phone already in use", zap.String("email", req.Email), zap.String("phone", req.Phone))
-		ctx.JSON(http.StatusOK, gin.H{"msg": "email or phone number entered is already in use"})
+		h.sugaredLogger.Warnw("expected record not found",
+			zap.String("email", req.Email),
+			zap.String("phone", req.Phone),
+		)
+		ctx.JSON(http.StatusOK, gin.H{"error": "email or phone number entered is already in use"})
 		return
 	}
 
@@ -72,12 +72,36 @@ func (h *Handler) NewAccount(ctx *gin.Context) {
 
 	if result.Error != nil {
 		h.sugaredLogger.Errorw("error", zap.String("username", req.Name))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "something went wrong..."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong..."})
 		return
 	}
 
-	msg := fmt.Sprintf("successfully created %s", user.Name)
-	ctx.JSON(http.StatusOK, gin.H{"msg": msg})
+	sendVerificationEmail(user)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Thanks for joining! You please check your email for a verification link."})
+}
+
+// sendVerificationEmail TODO implement verification email
+func sendVerificationEmail(user models.User) {
+	if user.Email == "" {
+		return
+	}
+}
+
+func handleValidationErrors(err error) gin.H {
+	switch err.(type) {
+	case *presentation.ErrInvalidUsername:
+		errors := map[string]string{"name": err.Error()}
+		return gin.H{"errors": errors}
+	case *presentation.ErrInvalidEmail:
+		errors := map[string]string{"email": err.Error()}
+		return gin.H{"errors": errors}
+	case *presentation.ErrInvalidPhone:
+		errors := map[string]string{"phone": err.Error()}
+		return gin.H{"errors": errors}
+
+	}
+	return gin.H{}
 }
 
 func validateInsertUserRequest(ctx *gin.Context) (models.User, error) {
@@ -92,15 +116,41 @@ func validateInsertUserRequest(ctx *gin.Context) (models.User, error) {
 	}
 
 	if !isValidUsername(req.Name) {
-		return req, errors.New("please enter a valid username")
+		return req, &presentation.ErrInvalidUsername{}
 	}
 
 	if !isValidEmail(req.Email) {
-		return req, errors.New("please enter a valid email")
+		return req, &presentation.ErrInvalidEmail{}
 	}
 
 	if !isValidPhoneNumber(req.Phone) {
-		return req, errors.New("please enter a valid phone")
+		return req, &presentation.ErrInvalidPhone{}
+	}
+
+	return req, nil
+}
+
+func validateUpdateUserRequest(ctx *gin.Context) (models.User, error) {
+	var req models.User
+
+	if err := ctx.BindJSON((&req)); err != nil {
+		return req, err
+	}
+
+	if req.Name == "" || req.Email == "" || req.Phone == "" {
+		return req, errors.New("please enter the required request fields")
+	}
+
+	if !isValidUsername(req.Name) {
+		return req, &presentation.ErrInvalidUsername{}
+	}
+
+	if !isValidEmail(req.Email) {
+		return req, &presentation.ErrInvalidEmail{}
+	}
+
+	if !isValidPhoneNumber(req.Phone) {
+		return req, &presentation.ErrInvalidPhone{}
 	}
 
 	return req, nil
