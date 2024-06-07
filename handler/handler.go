@@ -3,24 +3,24 @@ package handler
 import (
 	"time"
 
+	"example.com/morethanjustlinks/config"
 	svcDB "example.com/morethanjustlinks/db"
 	"github.com/gin-gonic/contrib/sessions"
-	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type Handler struct {
+	appConfig     config.AppConfig
 	sugaredLogger *zap.SugaredLogger
 	db            *gorm.DB
 }
 
-var secret = []byte("secret")
 var PING_DB_ATTEMPTS = 90
 
 // NewHandler holds all the dependencies for the service
-func NewHandler(db *gorm.DB, sugaredLogger *zap.SugaredLogger, attempts int) (*Handler, error) {
+func NewHandler(appConfig config.AppConfig, db *gorm.DB, sugaredLogger *zap.SugaredLogger, attempts int) (*Handler, error) {
 	var err error
 	var sqldb svcDB.SqlDB
 
@@ -32,6 +32,7 @@ func NewHandler(db *gorm.DB, sugaredLogger *zap.SugaredLogger, attempts int) (*H
 	for i := 0; i < attempts; i++ {
 		if err = sqldb.Ping(); err == nil {
 			return &Handler{
+				appConfig:     appConfig,
 				sugaredLogger: sugaredLogger,
 				db:            db,
 			}, nil
@@ -45,59 +46,42 @@ func NewHandler(db *gorm.DB, sugaredLogger *zap.SugaredLogger, attempts int) (*H
 func (h *Handler) SetupHandlerRoutes() *gin.Engine {
 
 	router := gin.Default()
+
+	// for file up loads
+	router.MaxMultipartMemory = 8 << 20 // 8 MiB
 	gin.SetMode(gin.ReleaseMode)
 
-	cookieStore := sessions.NewCookieStore(secret)
+	cookieStore := sessions.NewCookieStore(h.appConfig.Server.Sessions)
 
+	// router.Use(cors.New(config))
 	router.Use(
 		sessions.Sessions("mysession", cookieStore),
 	)
 
-	// Serve frontend static files
-	router.Use(static.Serve("/", static.LocalFile("./frontend", true)))
-
-	// router.GET("/setup", h.SetupService)
-	// router.POST("login", h.Login)
-	// router.GET("logout", h.Logout)
+	router.POST("login", h.Login)
+	router.POST("logout", h.Logout)
 	router.POST("newAccount", h.NewAccount)
-	router.GET("getAllUsers", h.GetAllUsers)
-	router.POST("deleteUser", h.DeleteUser)
-	router.GET("getUser", h.GetUserByName)
+	router.GET("getUser", h.GetUserByID)
+	router.GET("getAllUsers", h.AuthMiddleware(), h.GetAllUsers)
+	router.POST("deleteUser", h.AuthMiddleware(), h.DeleteUser)
+	router.POST("upload", h.AuthMiddleware(), h.Upload)
+	router.POST("update", h.AuthMiddleware(), h.UpdateUser)
+	router.GET("incr", func(c *gin.Context) {
+		session := sessions.Default(c)
+		c.Header("Content-Type", "application/json")
 
-	// router.GET("/:name", h.GetProfile)
-
-	// todo profile router use authentication
-	// does pfp need to use sessions also?
-	// pfp := router.Group("/:name/profile", h.Authentication)
-	// pfp.POST("/edit", func(ctx *gin.Context) {
-	// 	ctx.JSON(http.StatusOK, gin.H{
-	// 		"msg": "place holder for profile updates",
-	// 	})
-	// })
-
-	// TODO and ^ behind pfp
-	// router.POST("/deleteUser", h.DeleteUser)
-	// router.POST("/deleteLink", h.DeleteLink)
-	router.POST("/update", h.UpdateUser)
-
-	// 		username := ctx.Param("name")
-	// 		if v == nil {
-	// 			count = 0
-	// 		} else {
-	// 			count = v.(int)
-	// 			count += 1
-	// 		}
-	// 		session.Set("count", count)
-	// 		session.Save()
-	// 		ctx.HTML(http.StatusOK, "profile.tmpl", gin.H{
-	// 			"count": count,
-	// 			"name":  username,
-	// 		})
-	// 	})
-	// 	api.GET("/setup", h.SetupService)
-	// 	api.POST("/delete", h.DeleteUser)
-	// 	api.POST("/update", h.UpdateUser)
-	// }
+		var count int
+		v := session.Get("count")
+		if v == nil {
+			count = 0
+		} else {
+			count = v.(int)
+			count++
+		}
+		session.Set("count", count)
+		session.Save()
+		c.JSON(200, gin.H{"count": count})
+	})
 
 	return router
 }

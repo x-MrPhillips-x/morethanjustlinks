@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"example.com/morethanjustlinks/models"
@@ -20,45 +19,39 @@ type UpdateUserRequest struct {
 
 func (h *Handler) UpdateUser(ctx *gin.Context) {
 	var req models.User
-	var user models.User
 
-	if err := ctx.BindJSON(&req); err != nil {
+	req, err := validateUpdateUserRequest(ctx)
+	if err != nil {
 		h.sugaredLogger.Errorw("invalid update user request",
 			zap.Any("error", err.Error()),
 			zap.Any("req", req))
-
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+		ctx.JSON(http.StatusBadRequest, handleValidationErrors((err)))
 		return
 	}
 
-	if !isValidEmail(req.Email) {
-		msg := fmt.Sprintf("%v is not a valid email address", req.Email)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
+	user := &models.User{ID: req.ID}
+
+	result := h.db.First(user)
+	if result.Error != nil {
+		h.sugaredLogger.Errorw("error fetching user to update", zap.Any("error", result.Error.Error()), zap.Any("user", user))
+		msg := "something went wrong..."
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": msg})
 		return
 	}
 
-	if !isValidPhoneNumber(req.Phone) {
-		msg := fmt.Sprintf("%v is not a valid mobile number", req.Email)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
-		return
-	}
+	user.Name = req.Name
+	user.Email = req.Email
+	user.Phone = req.Phone
+	user.Role = req.Role
 
-	if !isValidUsername(req.Name) {
-		msg := fmt.Sprintf("%v is not a valid mobile number", req.Email)
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": msg})
-		return
-	}
-
-	result := h.db.Model(&user).Updates(models.User{
-		Phone:    req.Phone,
-		Email:    req.Email,
-		Verified: req.Verified,
-		Role:     req.Role,
-	})
+	result = h.db.Save(user)
 
 	if result.Error != nil {
 		h.sugaredLogger.Errorw("error updating user", zap.Any("error", result.Error.Error()), zap.Any("user", user))
 		msg := "something went wrong..."
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": msg})
+		return
 	}
+
+	ctx.JSON(http.StatusOK, gin.H{"msg": "success"})
 }

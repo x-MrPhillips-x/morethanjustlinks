@@ -16,23 +16,26 @@ type UserLink struct {
 }
 
 type GetUserRequest struct {
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
 type User struct {
 	gorm.Model
-	ID       int64     `json:"id"`
-	UUID     uuid.UUID `json:"uuid" gorm:"type:uuid;primaryKey"`
-	Name     string    `json:"name,omitempty"`
-	Email    string    `json:"email,omitempty"`
-	Phone    string    `json:"phone,omitempty"`
-	Psword   string    `json:"psword,omitempty"`
-	Verified bool      `json:"verified,omitempty"`
-	Role     string    `json:"role,omitempty" gorm:"role"`
+	ID uuid.UUID `gorm:"type:char(36);primary_key"`
+	// ID       int64     `json:"id"`
+	// UUID     uuid.UUID `json:"uuid" gorm:"type:uuid;primaryKey"`
+	Name       string `json:"name,omitempty"`
+	Email      string `json:"email,omitempty"`
+	Phone      string `json:"phone,omitempty"`
+	Psword     string `json:"psword,omitempty"`
+	Verified   bool   `json:"verified,omitempty"`
+	Role       string `json:"role,omitempty" gorm:"role"`
+	ProfilePic string `json:"profilePic,omitempty" gorm:"profile_pic"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	u.UUID = uuid.New()
+	u.ID = uuid.New()
 	return
 }
 
@@ -48,4 +51,9 @@ func (u *User) BeforeUpdate(tx *gorm.DB) (err error) {
 		return errors.New("you do not have permission to udpate user")
 	}
 	return
+}
+
+type UploadFileRequest struct {
+	ID   string `json:"id"`
+	File string `json:"file"`
 }
