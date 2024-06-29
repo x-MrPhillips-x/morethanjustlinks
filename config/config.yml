@@ -1,0 +1,6 @@
+database:
+  pingdbattempts: 7
+  sqldsn : "user:secret@db"
+
+# server: 
+#   session: "secret"
