@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   # frontend:
   #   build:
@@ -21,11 +19,17 @@ services:
   #     - 443:443
   #   depends_on: 
   #     - api
-  api:
+  go:
     build:
       dockerfile: Dockerfile
+    # Uncomment  for hot reloads
+      context: ./
+    volumes:
+      - ./:/morethanjustlinks
+      - ./go.mod:/morethanjustlinks/go.mod
+    # ===================================
     ports:
-      - 8080:8080
+      - 127.0.0.1:8080:8080
     # environment:
     #   - GIN_MODE=release 
     depends_on:
