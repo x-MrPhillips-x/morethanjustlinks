@@ -72,6 +72,7 @@ func (h *HandlerTestSuite) TestNewAccount() {
 			h.router.ServeHTTP(w, req)
 
 			var resp map[string]string
+			//nolint:errcheck
 			json.Unmarshal(w.Body.Bytes(), &resp)
 
 			// TODO update tests

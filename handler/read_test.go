@@ -74,6 +74,7 @@ func (h *HandlerTestSuite) TestGetAllUsers() {
 
 			var resp []models.User
 
+			//nolint:errcheck
 			json.Unmarshal(w.Body.Bytes(), &resp)
 			// TODO update tests
 			// assert.Equal(h.T(), len(tt.resp), len(resp))
