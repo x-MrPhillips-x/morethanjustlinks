@@ -33,7 +33,6 @@ func main() {
 	}
 
 	router := s.SetupHandlerRoutes()
-	logger.Info("supporting hot reload : version 2", zap.Any("router", router))
 
 	router.Run(":8080")
 }
