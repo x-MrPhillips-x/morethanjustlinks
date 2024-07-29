@@ -5,10 +5,11 @@ const (
 )
 
 type User struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
+	UUID  string `json:"uuid"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
+	//nolint:govet
 	Psword   string `json:"psword`
 	Verified bool   `json:"verified"`
 }

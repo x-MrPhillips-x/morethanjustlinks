@@ -94,10 +94,6 @@ type UserLink struct {
 
 func (h *Handler) Login(ctx *gin.Context) {
 
-	defer func() {
-		h.sugaredLogger.Desugar().Sync() // flushes buffer, if any
-	}()
-
 	ctx.Header("Content-Type", "application/json")
 
 	// Bind the input data
@@ -131,7 +127,9 @@ func (h *Handler) Login(ctx *gin.Context) {
 	if v := session.Get("uuid"); v == nil {
 		uuid = 1
 		session.Set("uuid", uuid)
-		session.Save()
+		if err := session.Save(); err != nil {
+			h.sugaredLogger.Errorw("failed to save seesion during login", zap.Error(err), zap.Any("session", session))
+		}
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "successful login", "user": foundUser.Name, "verified": foundUser.Verified, "uuid": uuid})
@@ -142,7 +140,9 @@ func (h *Handler) Logout(ctx *gin.Context) {
 
 	count0 := session.Get("count")
 	session.Clear()
-	session.Save()
+	if err := session.Save(); err != nil {
+		h.sugaredLogger.Errorf("error saving session", zap.Error(err), zap.Any("session", session))
+	}
 	count1 := session.Get("count")
 
 	// TODO update DB

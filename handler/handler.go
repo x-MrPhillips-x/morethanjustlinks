@@ -1,6 +1,8 @@
 package handler
 
 import (
+	// "time"
+
 	"time"
 
 	"example.com/morethanjustlinks/config"
@@ -66,22 +68,6 @@ func (h *Handler) SetupHandlerRoutes() *gin.Engine {
 	router.POST("deleteUser", h.AuthMiddleware(), h.DeleteUser)
 	router.POST("upload", h.AuthMiddleware(), h.Upload)
 	router.POST("update", h.AuthMiddleware(), h.UpdateUser)
-	router.GET("incr", func(c *gin.Context) {
-		session := sessions.Default(c)
-		c.Header("Content-Type", "application/json")
-
-		var count int
-		v := session.Get("count")
-		if v == nil {
-			count = 0
-		} else {
-			count = v.(int)
-			count++
-		}
-		session.Set("count", count)
-		session.Save()
-		c.JSON(200, gin.H{"count": count})
-	})
 
 	return router
 }

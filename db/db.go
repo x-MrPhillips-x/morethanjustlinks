@@ -21,7 +21,9 @@ func NewGormDB(dialector gorm.Dialector, cfg *gorm.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.AutoMigrate(&models.User{})
+	if err = db.AutoMigrate(&models.User{}); err != nil {
+		return nil, err
+	}
 
 	return db, err
 }
